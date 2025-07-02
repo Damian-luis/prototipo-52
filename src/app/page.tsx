@@ -16,11 +16,14 @@ export default function Home() {
       } else {
         router.push('/freelancer');
       }
-    } else {
-      // Si no está autenticado, redirigir al login
-      router.push('/signin');
     }
+    // Si no está autenticado, no redirige, muestra la landing
   }, [isAuthenticated, user, router]);
+
+  if (!isAuthenticated) {
+    // Mostrar la landing si no está autenticado
+    return <LandingPage />;
+  }
 
   // Mostrar un loading mientras se determina la redirección
   return (
@@ -50,7 +53,7 @@ export function LandingPage() {
           <Link href="/signup"><button className="bg-white text-blue-700 border border-blue-600 px-8 py-3 rounded-lg font-semibold shadow hover:bg-blue-50 transition dark:bg-gray-900 dark:text-white dark:border-white">Registrarse</button></Link>
         </div>
         <div className="w-full flex justify-center mt-8">
-          <img src="/images/landing-dashboard.png" alt="Dashboard FreelaSaaS" width={900} height={480} className="rounded-xl shadow-xl border border-blue-100 dark:border-gray-800" />
+          <img src="/images/grid-image/image-01.png" alt="Dashboard FreelaSaaS" width={900} height={480} className="rounded-xl shadow-xl border border-blue-100 dark:border-gray-800" />
         </div>
       </section>
       {/* HIGHLIGHTS */}

@@ -28,12 +28,15 @@ export default function UserDropdown() {
     "/images/user/owner.jpg",
   ];
 
-  // Elegir uno al azar si no hay profilePicture
-  function getRandomAvatar() {
-    return exampleAvatars[Math.floor(Math.random() * exampleAvatars.length)];
+  // Elegir avatar fijo según el usuario
+  let avatarSrc = "/images/user/user-02.jpg";
+  if (user?.role === "admin" || (user?.email && user.email.includes("admin"))) {
+    avatarSrc = "/images/user/owner.jpg";
+  }
+  if (user?.profilePicture) {
+    avatarSrc = user.profilePicture;
   }
 
-  const avatarSrc = user?.profilePicture || getRandomAvatar();
   const displayName = user?.name || "Usuario";
   const displayEmail = user?.email || "correo@freelasaas.com";
 

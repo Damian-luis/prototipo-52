@@ -1,5 +1,6 @@
 'use client'
 import React, { useState } from "react";
+import { Modal } from "@/components/ui/modal";
 
 const mockContracts = [
   { id: 1, freelancer: "Laura Méndez", proyecto: "Landing corporativa", estado: "Pendiente de firma" },
@@ -8,9 +9,22 @@ const mockContracts = [
 
 export default function ContractsPage() {
   const [contracts, setContracts] = useState(mockContracts);
+  const [selectedContract, setSelectedContract] = useState<any | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleOpenModal = (contract: any) => {
+    setSelectedContract(contract);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedContract(null);
+  };
 
   const handleSign = (id: number) => {
     setContracts(contracts.map(c => c.id === id ? { ...c, estado: "Firmado" } : c));
+    handleCloseModal();
   };
 
   return (
@@ -33,7 +47,7 @@ export default function ContractsPage() {
               <td className="p-2">{contract.estado}</td>
               <td className="p-2">
                 {contract.estado === "Pendiente de firma" && (
-                  <button className="bg-green-600 text-white px-3 py-1 rounded" onClick={() => handleSign(contract.id)}>
+                  <button className="bg-green-600 text-white px-3 py-1 rounded" onClick={() => handleOpenModal(contract)}>
                     Firmar
                   </button>
                 )}
@@ -42,6 +56,20 @@ export default function ContractsPage() {
           ))}
         </tbody>
       </table>
+      <Modal isOpen={isModalOpen} onClose={handleCloseModal} className="max-w-md p-6">
+        {selectedContract && (
+          <div>
+            <h2 className="text-xl font-bold mb-4">Confirmar Firma de Contrato</h2>
+            <div className="mb-2"><span className="font-semibold">Freelancer:</span> {selectedContract.freelancer}</div>
+            <div className="mb-2"><span className="font-semibold">Proyecto:</span> {selectedContract.proyecto}</div>
+            <div className="mb-2"><span className="font-semibold">Estado:</span> {selectedContract.estado}</div>
+            <div className="flex justify-end gap-2 mt-6">
+              <button className="px-4 py-2 rounded bg-gray-200 text-gray-700" onClick={handleCloseModal}>Cancelar</button>
+              <button className="px-4 py-2 rounded bg-green-600 text-white" onClick={() => handleSign(selectedContract.id)}>Confirmar firma</button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 } 

@@ -16,7 +16,7 @@ export default function FreelancerLayout({
   return (
     <AuthGuard requiredRole="freelancer">
       <FreelancerSidebar />
-      <div className={`relative flex flex-1 flex-col overflow-y-auto overflow-x-hidden transition-all duration-300 lg:${sidebarWidth}`}>
+      <div className={`relative flex flex-1 flex-col overflow-y-auto overflow-x-hidden transition-all duration-300 ${sidebarWidth}`}>
         <AppHeader />
         <main className="grow [&>*:first-child]:scroll-mt-16">{children}</main>
       </div>

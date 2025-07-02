@@ -1,3 +1,4 @@
+import AuthLayout from "@/components/auth/AuthLayout";
 import SignUpForm from "@/components/auth/SignUpForm";
 import { Metadata } from "next";
 
@@ -7,6 +8,10 @@ export const metadata: Metadata = {
   // other metadata
 };
 
-export default function SignUp() {
-  return <SignUpForm />;
+export default function SignUpPage() {
+  return (
+    <AuthLayout>
+      <SignUpForm />
+    </AuthLayout>
+  );
 } 

@@ -8,10 +8,11 @@ import TextArea from "@/components/form/input/TextArea";
 import Label from "@/components/form/Label";
 import { PlusIcon, Pencil } from "@/icons";
 import type { JobVacancy } from "@/context/TalentContext";
+import { Modal } from "@/components/ui/modal";
 
 const AdminJobsPage = () => {
-  const { vacancies, createVacancy, updateVacancy, deleteVacancy, applications } = useTalent();
-  const { user } = useAuth();
+  const { vacancies, createVacancy, updateVacancy, deleteVacancy, applications, getApplicationsByJob, updateApplicationStatus } = useTalent();
+  const { user, users } = useAuth();
   const [showForm, setShowForm] = useState(false);
   const [editingJob, setEditingJob] = useState<any>(null);
   const [formData, setFormData] = useState({
@@ -26,6 +27,8 @@ const AdminJobsPage = () => {
     status: "open",
     createdBy: user?.id || "1"
   });
+  const [showApplications, setShowApplications] = useState<string | null>(null);
+  const [selectedFreelancer, setSelectedFreelancer] = useState<any | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,6 +106,10 @@ const AdminJobsPage = () => {
 
   const getApplicationsCount = (jobId: string) => {
     return applications.filter(a => a.jobId === jobId).length;
+  };
+
+  const getFreelancerProfile = (freelancerId: string) => {
+    return users.find(u => u.id === freelancerId);
   };
 
   return (
@@ -305,6 +312,12 @@ const AdminJobsPage = () => {
                 </div>
                 <div className="flex gap-2">
                   <button
+                    onClick={() => setShowApplications(vacancy.id)}
+                    className="p-2 text-blue-600 hover:text-blue-800 border border-blue-200 rounded"
+                  >
+                    Ver postulaciones
+                  </button>
+                  <button
                     onClick={() => handleEdit(vacancy)}
                     className="p-2 text-gray-600 hover:text-brand-500"
                   >
@@ -355,6 +368,49 @@ const AdminJobsPage = () => {
                 ))}
               </div>
             </div>
+            {/* Modal de postulaciones */}
+            <Modal isOpen={showApplications === vacancy.id} onClose={() => setShowApplications(null)} className="max-w-4xl p-8">
+              <h3 className="text-2xl font-bold mb-6">Postulaciones a {vacancy.title}</h3>
+              {getApplicationsByJob(vacancy.id).length === 0 ? (
+                <div className="text-gray-500">No hay postulaciones para esta vacante.</div>
+              ) : (
+                <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {getApplicationsByJob(vacancy.id).map(app => (
+                    <li key={app.id} className="py-5 flex flex-col gap-2">
+                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                        <div className="flex items-center gap-4">
+                          <div className="font-semibold text-lg">{app.freelancerName} ({app.freelancerEmail})</div>
+                          <button
+                            className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-base font-semibold shadow transition"
+                            onClick={() => setSelectedFreelancer(getFreelancerProfile(app.freelancerId))}
+                          >
+                            Ver perfil
+                          </button>
+                        </div>
+                        <div className="text-xs text-gray-500 mb-1">Estado: {app.status.charAt(0).toUpperCase() + app.status.slice(1)} | Aplicado: {new Date(app.appliedAt).toLocaleDateString()}</div>
+                      </div>
+                      <div className="text-base text-gray-700 dark:text-gray-300 mt-1 mb-2">{app.coverLetter}</div>
+                      <div className="flex flex-row gap-3 justify-center mt-2">
+                        <button
+                          className={`px-5 py-2 rounded-lg text-white font-semibold transition ${app.status === 'accepted' ? 'bg-green-600' : 'bg-green-500 hover:bg-green-600'}`}
+                          disabled={app.status === 'accepted'}
+                          onClick={async () => await updateApplicationStatus(app.id, 'accepted')}
+                        >
+                          {app.status === 'accepted' ? 'Aceptado' : 'Aceptar'}
+                        </button>
+                        <button
+                          className={`px-5 py-2 rounded-lg text-white font-semibold transition ${app.status === 'rejected' ? 'bg-red-600' : 'bg-red-500 hover:bg-red-600'}`}
+                          disabled={app.status === 'rejected'}
+                          onClick={async () => await updateApplicationStatus(app.id, 'rejected')}
+                        >
+                          {app.status === 'rejected' ? 'Rechazado' : 'Rechazar'}
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Modal>
           </ComponentCard>
         ))}
 
@@ -366,6 +422,36 @@ const AdminJobsPage = () => {
           </div>
         )}
       </div>
+      {/* Modal de perfil de freelancer */}
+      <Modal isOpen={!!selectedFreelancer} onClose={() => setSelectedFreelancer(null)} className="max-w-2xl p-8">
+        {selectedFreelancer && (
+          <div>
+            <h3 className="text-2xl font-bold mb-4">Perfil de {selectedFreelancer.name}</h3>
+            <div className="mb-2 text-base text-gray-500">Email: {selectedFreelancer.email}</div>
+            <div className="mb-2 text-base text-gray-500">Skills: {(selectedFreelancer.skills || []).join(", ")}</div>
+            <div className="mb-2 text-base text-gray-500">Tarifa: {selectedFreelancer.hourlyRate ? `$${selectedFreelancer.hourlyRate}/h` : 'N/A'}</div>
+            <div className="mb-2 text-base text-gray-500">Disponibilidad: {selectedFreelancer.availability || 'N/A'}</div>
+            <div className="mb-2 text-base text-gray-500">Bio: {selectedFreelancer.bio || 'N/A'}</div>
+            {selectedFreelancer.portfolio && (
+              <div className="mb-2 text-base text-gray-500">Portfolio: <a href={selectedFreelancer.portfolio} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Ver</a></div>
+            )}
+            <div className="mt-6 flex gap-4">
+              <button
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-base font-semibold shadow transition"
+                onClick={() => window.open(`mailto:${selectedFreelancer.email}`)}
+              >
+                Contactar usuario
+              </button>
+              <button
+                className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-base font-semibold shadow transition"
+                onClick={() => {navigator.clipboard.writeText(selectedFreelancer.email); alert('Email copiado')}}
+              >
+                Copiar email
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };
