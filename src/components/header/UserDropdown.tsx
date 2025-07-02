@@ -31,7 +31,7 @@ export default function UserDropdown() {
   // Elegir avatar fijo según el usuario
   let avatarSrc = "/images/user/user-02.jpg";
   if (user?.role === "admin" || (user?.email && user.email.includes("admin"))) {
-    avatarSrc = "/images/user/owner.jpg";
+    avatarSrc = "/images/user/user-05.jpg";
   }
   if (user?.profilePicture) {
     avatarSrc = user.profilePicture;

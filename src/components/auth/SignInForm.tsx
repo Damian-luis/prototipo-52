@@ -6,34 +6,36 @@ import { ChevronLeft, EyeClose, Eye } from "@/icons";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
+import { useAuth } from "@/context/AuthContext";
 
 export default function SignInForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const router = useRouter();
+  const { login } = useAuth();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     if (!form.email || !form.password) {
       setError("Todos los campos son obligatorios");
       return;
     }
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("users");
-      const users = stored ? JSON.parse(stored) : [];
-      const user = users.find((u: any) => u.email === form.email && u.password === form.password);
-      if (!user) {
-        setError("Email o contraseña incorrectos");
-        return;
+    const result = await login(form.email, form.password);
+    if (result.success) {
+      const user = JSON.parse(localStorage.getItem("currentUser") || "{}");
+      if (user.role === "admin") {
+        router.push("/admin");
+      } else {
+        router.push("/freelancer");
       }
-      localStorage.setItem("currentUser", JSON.stringify(user));
-      router.push("/");
+    } else {
+      setError(result.message);
     }
   };
 
@@ -114,6 +116,16 @@ export default function SignInForm() {
             Freelancer: freelancer@example.com / freelancer123
           </p>
         </div>
+        <div className="relative py-3 sm:py-5 mb-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-200 dark:border-gray-800"></div>
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="p-2 text-gray-400 bg-white dark:bg-gray-900 sm:px-5 sm:py-2">
+              Or
+            </span>
+          </div>
+        </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-5 mb-6">
           <button className="inline-flex items-center justify-center gap-3 py-3 text-sm font-normal text-gray-700 transition-colors bg-gray-100 rounded-lg px-7 hover:bg-gray-200 hover:text-gray-800 dark:bg-white/5 dark:text-white/90 dark:hover:bg-white/10">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -130,16 +142,6 @@ export default function SignInForm() {
             </svg>
             Sign in with X
           </button>
-        </div>
-        <div className="relative py-3 sm:py-5">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-200 dark:border-gray-800"></div>
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="p-2 text-gray-400 bg-white dark:bg-gray-900 sm:px-5 sm:py-2">
-              Or
-            </span>
-          </div>
         </div>
       </div>
     </div>

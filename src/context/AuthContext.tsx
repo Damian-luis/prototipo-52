@@ -12,6 +12,9 @@ export interface User {
   profilePicture?: string;
   phone?: string;
   address?: string;
+  city?: string;
+  postalCode?: string;
+  taxId?: string;
   skills?: string[];
   hourlyRate?: number;
   availability?: 'available' | 'busy' | 'unavailable';

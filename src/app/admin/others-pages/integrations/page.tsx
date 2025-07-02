@@ -1,5 +1,6 @@
 'use client'
 import React, { useState } from "react";
+import { Modal } from "@/components/ui/modal";
 
 const mockIntegrations = [
   { id: 1, nombre: "Upwork", conectado: true },
@@ -10,9 +11,16 @@ const mockIntegrations = [
 
 export default function IntegrationsPage() {
   const [integrations, setIntegrations] = useState(mockIntegrations);
+  const [pendingIntegration, setPendingIntegration] = useState<{ id: number; action: 'connect' | 'disconnect'; nombre: string } | null>(null);
 
-  const toggleIntegration = (id: number) => {
-    setIntegrations(integrations.map(i => i.id === id ? { ...i, conectado: !i.conectado } : i));
+  const handleRequest = (id: number, action: 'connect' | 'disconnect', nombre: string) => {
+    setPendingIntegration({ id, action, nombre });
+  };
+
+  const confirmAction = () => {
+    if (!pendingIntegration) return;
+    setIntegrations(integrations.map(i => i.id === pendingIntegration.id ? { ...i, conectado: pendingIntegration.action === 'connect' } : i));
+    setPendingIntegration(null);
   };
 
   return (
@@ -24,13 +32,25 @@ export default function IntegrationsPage() {
             <span>{integration.nombre}</span>
             <button
               className={`px-4 py-2 rounded ${integration.conectado ? 'bg-red-600 text-white' : 'bg-blue-600 text-white'}`}
-              onClick={() => toggleIntegration(integration.id)}
+              onClick={() => handleRequest(integration.id, integration.conectado ? 'disconnect' : 'connect', integration.nombre)}
             >
               {integration.conectado ? 'Desconectar' : 'Conectar'}
             </button>
           </li>
         ))}
       </ul>
+      <Modal isOpen={!!pendingIntegration} onClose={() => setPendingIntegration(null)} className="max-w-md p-6">
+        {pendingIntegration && (
+          <div>
+            <h2 className="text-xl font-bold mb-4">{pendingIntegration.action === 'connect' ? 'Conectar' : 'Desconectar'} integración</h2>
+            <p className="mb-6">¿Estás seguro que deseas {pendingIntegration.action === 'connect' ? 'conectar' : 'desconectar'} <span className="font-semibold">{pendingIntegration.nombre}</span>?</p>
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => setPendingIntegration(null)} className="px-4 py-2 bg-gray-100 rounded hover:bg-gray-200">Cancelar</button>
+              <button onClick={confirmAction} className={`px-4 py-2 rounded text-white ${pendingIntegration.action === 'connect' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-red-600 hover:bg-red-700'}`}>Confirmar</button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 } 
