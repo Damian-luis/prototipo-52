@@ -16,7 +16,7 @@ const FreelancerDashboard = () => {
   const { payments } = usePayment();
   const { getMotivationalMessage } = useAI();
 
-  const [motivationalMessage, setMotivationalMessage] = useState<any>(null);
+  const [motivationalMessage, setMotivationalMessage] = useState<unknown>(null);
 
   useEffect(() => {
     setMotivationalMessage(getMotivationalMessage());

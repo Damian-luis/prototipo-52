@@ -5,8 +5,8 @@ import { useTalent } from "@/context/TalentContext";
 import { useContract } from "@/context/ContractContext";
 import { usePayment } from "@/context/PaymentContext";
 import ComponentCard from "@/components/common/ComponentCard";
-import { BarChart } from "@/components/charts/bar/BarChart";
-import { LineChart } from "@/components/charts/line/LineChart";
+import BarChartOne from "@/components/charts/bar/BarChartOne";
+import LineChartOne from "@/components/charts/line/LineChartOne";
 
 const AdminReportsPage = () => {
   const { users } = useAuth();
@@ -40,34 +40,6 @@ const AdminReportsPage = () => {
         : 0
     };
   }, [users, contracts, payments, vacancies, applications, evaluations]);
-
-  // Datos para gráficos
-  const revenueChartData = {
-    series: [{
-      name: "Ingresos",
-      data: [30000, 40000, 35000, 50000, 49000, 60000, 70000]
-    }],
-    categories: ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul"]
-  };
-
-  const contractsChartData = {
-    series: [{
-      name: "Contratos Activos",
-      data: [10, 15, 13, 18, 20, 25, 22]
-    }, {
-      name: "Contratos Completados",
-      data: [5, 8, 12, 10, 14, 16, 20]
-    }],
-    categories: ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul"]
-  };
-
-  const skillsDistribution = {
-    series: [{
-      name: "Freelancers",
-      data: [44, 55, 41, 37, 22, 43, 21]
-    }],
-    categories: ["React", "Node.js", "Python", "Design", "Mobile", "DevOps", "Data"]
-  };
 
   const handleExport = (format: 'pdf' | 'excel') => {
     alert(`Exportando reporte en formato ${format.toUpperCase()}...`);
@@ -148,30 +120,17 @@ const AdminReportsPage = () => {
       {/* Gráficos */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <ComponentCard title="Evolución de Ingresos">
-          <LineChart 
-            series={revenueChartData.series}
-            categories={revenueChartData.categories}
-            height={300}
-          />
+          <LineChartOne />
         </ComponentCard>
 
         <ComponentCard title="Contratos por Mes">
-          <BarChart
-            series={contractsChartData.series}
-            categories={contractsChartData.categories}
-            height={300}
-          />
+          <BarChartOne />
         </ComponentCard>
       </div>
 
       {/* Distribución de habilidades */}
       <ComponentCard title="Distribución de Habilidades" className="mb-8">
-        <BarChart
-          series={skillsDistribution.series}
-          categories={skillsDistribution.categories}
-          height={300}
-          horizontal={true}
-        />
+        <BarChartOne />
       </ComponentCard>
 
       {/* Tabla de resumen */}

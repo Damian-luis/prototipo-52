@@ -13,23 +13,6 @@ export const metadata: Metadata = {
   description: "Panel principal para la gestión de freelancers, contrataciones y pagos.",
 };
 
-// Datos simulados coherentes con el SaaS
-const monthlyHires = [8, 12, 15, 20, 18, 25, 30, 28, 32, 35, 38, 40];
-const satisfaction = 92; // %
-const successRate = 87; // %
-const freelancersByCountry = [
-  { country: "Argentina", value: 120 },
-  { country: "México", value: 95 },
-  { country: "España", value: 80 },
-  { country: "Colombia", value: 60 },
-  { country: "Chile", value: 45 },
-];
-const recentContracts = [
-  { name: "Juan Pérez", company: "Globant", amount: "$1,200", date: "2024-06-10" },
-  { name: "Ana López", company: "MercadoLibre", amount: "$900", date: "2024-06-09" },
-  { name: "Carlos Ruiz", company: "Telefónica", amount: "$1,500", date: "2024-06-08" },
-];
-
 export default function Dashboard() {
   return (
     <div className="grid grid-cols-12 gap-4 md:gap-6">

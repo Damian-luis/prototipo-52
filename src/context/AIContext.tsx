@@ -7,7 +7,7 @@ export interface AIRecommendation {
   title: string;
   description: string;
   confidence: number; // 0-100
-  data: any;
+  data: unknown;
   createdAt: string;
   userId: string;
 }

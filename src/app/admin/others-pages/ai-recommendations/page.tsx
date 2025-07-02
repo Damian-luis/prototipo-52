@@ -10,7 +10,7 @@ export default function AIRecommendationsPage() {
   return (
     <div className="max-w-2xl mx-auto bg-white dark:bg-gray-900 rounded-xl p-8 shadow">
       <h1 className="text-2xl font-bold mb-6">Recomendaciones Inteligentes</h1>
-      <p className="mb-4 text-gray-600 dark:text-gray-300">Freelancers sugeridos por IA para la oferta "Landing corporativa"</p>
+      <p className="mb-4 text-gray-600 dark:text-gray-300">Freelancers sugeridos por IA para la oferta &quot;Landing corporativa&quot;</p>
       <ul>
         {mockFreelancers.map(freelancer => (
           <li key={freelancer.id} className="mb-4 p-4 border rounded flex flex-col md:flex-row md:items-center md:justify-between">

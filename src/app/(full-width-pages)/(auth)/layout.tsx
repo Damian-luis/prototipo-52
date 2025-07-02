@@ -22,14 +22,14 @@ export default function AuthLayout({
               <GridShape />
               <div className="flex flex-col items-center max-w-xs">
                 <Link href="/" className="block mb-4">
-                  <img
+                  <Image
                     width={231}
                     height={48}
                     src="/images/logo/logo.svg"
                     alt="FreelaSaaS Logo"
                     className="dark:hidden"
                   />
-                  <img
+                  <Image
                     width={231}
                     height={48}
                     src="/images/logo/logo-dark.svg"

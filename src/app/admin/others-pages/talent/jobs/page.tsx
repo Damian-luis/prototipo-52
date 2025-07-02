@@ -153,7 +153,7 @@ const AdminJobsPage = () => {
                 <Label>Tipo de trabajo</Label>
                 <select
                   value={formData.type}
-                  onChange={(e) => setFormData({...formData, type: e.target.value as any})}
+                  onChange={(e) => setFormData({...formData, type: e.target.value as unknown as const})}
                   className="h-11 w-full appearance-none rounded-lg border border-gray-300 px-4 py-2.5 text-sm"
                 >
                   <option value="full-time">Tiempo completo</option>
@@ -253,7 +253,7 @@ const AdminJobsPage = () => {
                 <Label>Estado</Label>
                 <select
                   value={formData.status}
-                  onChange={(e) => setFormData({...formData, status: e.target.value as any})}
+                  onChange={(e) => setFormData({...formData, status: e.target.value as unknown as const})}
                   className="h-11 w-full appearance-none rounded-lg border border-gray-300 px-4 py-2.5 text-sm"
                 >
                   <option value="open">Abierta</option>

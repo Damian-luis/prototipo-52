@@ -15,7 +15,7 @@ const ActiveContractsPage = () => {
     c => c.freelancerId === user?.id && c.status === 'active'
   );
 
-  const handleMilestoneUpdate = async (contractId: string, milestoneId: string, newStatus: any) => {
+  const handleMilestoneUpdate = async (contractId: string, milestoneId: string, newStatus: unknown) => {
     try {
       const result = await updateMilestoneStatus(contractId, milestoneId, newStatus);
       if (result.success) {

@@ -16,11 +16,11 @@ const AIAssistantPage = () => {
     getRecommendationsByUser
   } = useAI();
   const { user } = useAuth();
-  const [selectedCategory, setSelectedCategory] = useState<any>("career");
+  const [selectedCategory, setSelectedCategory] = useState<unknown>("career");
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
-  const [consultations, setConsultations] = useState<any[]>([]);
-  const [recommendations, setRecommendations] = useState<any[]>([]);
+  const [consultations, setConsultations] = useState<unknown[]>([]);
+  const [recommendations, setRecommendations] = useState<unknown[]>([]);
 
   useEffect(() => {
     if (user) {

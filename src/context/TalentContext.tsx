@@ -265,10 +265,10 @@ export const TalentProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     // Obtener usuarios freelancers del localStorage
     const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const freelancers = users.filter((u: any) => u.role === 'freelancer');
+    const freelancers = users.filter((u: unknown) => u.role === 'freelancer');
 
     // Calcular similitud y ordenar
-    const recommendations = freelancers.map((freelancer: any) => {
+    const recommendations = freelancers.map((freelancer: unknown) => {
       const similarity = calculateCosineSimilarity(job.skills, freelancer.skills || []);
       const freelancerEvaluations = evaluations.filter(e => e.freelancerId === freelancer.id);
       const avgScore = freelancerEvaluations.length > 0
@@ -292,7 +292,7 @@ export const TalentProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     });
 
     return recommendations
-      .sort((a: any, b: any) => b.similarity - a.similarity)
+      .sort((a: unknown, b: unknown) => b.similarity - a.similarity)
       .slice(0, 5); // Top 5 recomendaciones
   };
 
