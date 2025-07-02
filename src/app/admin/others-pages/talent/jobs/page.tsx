@@ -6,7 +6,8 @@ import ComponentCard from "@/components/common/ComponentCard";
 import Input from "@/components/form/input/InputField";
 import TextArea from "@/components/form/input/TextArea";
 import Label from "@/components/form/Label";
-import { PlusIcon, PencilIcon } from "@/icons";
+import { PlusIcon, Pencil } from "@/icons";
+import type { JobVacancy } from "@/context/TalentContext";
 
 const AdminJobsPage = () => {
   const { vacancies, createVacancy, updateVacancy, deleteVacancy, applications } = useTalent();
@@ -19,31 +20,25 @@ const AdminJobsPage = () => {
     requirements: "",
     skills: "",
     experienceRequired: 0,
-    salaryMin: 0,
-    salaryMax: 0,
-    currency: "USD",
+    salaryRange: { min: 0, max: 0, currency: "USD" },
     location: "Remoto",
-    type: "freelance" as const,
-    status: "open" as const
+    type: "freelance",
+    status: "open",
+    createdBy: user?.id || "1"
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     const jobData = {
-      title: formData.title,
-      description: formData.description,
+      ...formData,
       requirements: formData.requirements.split("\n").filter(r => r.trim()),
       skills: formData.skills.split(",").map(s => s.trim()).filter(s => s),
+      type: formData.type as 'full-time' | 'part-time' | 'contract' | 'freelance',
+      status: formData.status as 'open' | 'closed' | 'draft',
       experienceRequired: formData.experienceRequired,
-      salaryRange: {
-        min: formData.salaryMin,
-        max: formData.salaryMax,
-        currency: formData.currency
-      },
+      salaryRange: formData.salaryRange,
       location: formData.location,
-      type: formData.type,
-      status: formData.status,
       createdBy: user?.id || "1"
     };
 
@@ -68,12 +63,11 @@ const AdminJobsPage = () => {
       requirements: "",
       skills: "",
       experienceRequired: 0,
-      salaryMin: 0,
-      salaryMax: 0,
-      currency: "USD",
+      salaryRange: { min: 0, max: 0, currency: "USD" },
       location: "Remoto",
       type: "freelance",
-      status: "open"
+      status: "open",
+      createdBy: user?.id || "1"
     });
     setEditingJob(null);
     setShowForm(false);
@@ -86,12 +80,11 @@ const AdminJobsPage = () => {
       requirements: job.requirements.join("\n"),
       skills: job.skills.join(", "),
       experienceRequired: job.experienceRequired,
-      salaryMin: job.salaryRange.min,
-      salaryMax: job.salaryRange.max,
-      currency: job.salaryRange.currency,
+      salaryRange: job.salaryRange,
       location: job.location,
       type: job.type,
-      status: job.status
+      status: job.status,
+      createdBy: job.createdBy
     });
     setEditingJob(job);
     setShowForm(true);
@@ -153,7 +146,7 @@ const AdminJobsPage = () => {
                 <Label>Tipo de trabajo</Label>
                 <select
                   value={formData.type}
-                  onChange={(e) => setFormData({...formData, type: e.target.value as unknown as const})}
+                  onChange={(e) => setFormData({...formData, type: e.target.value})}
                   className="h-11 w-full appearance-none rounded-lg border border-gray-300 px-4 py-2.5 text-sm"
                 >
                   <option value="full-time">Tiempo completo</option>
@@ -167,7 +160,8 @@ const AdminJobsPage = () => {
             <div>
               <Label>Descripción</Label>
               <TextArea
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData({...formData, description: e.target.value})}
+                value={formData.description}
+                onChange={(value) => setFormData({...formData, description: value})}
                 placeholder="Describe el puesto y las responsabilidades..."
                 rows={4}
               />
@@ -175,10 +169,11 @@ const AdminJobsPage = () => {
 
             <div>
               <Label>Requisitos (uno por línea)</Label>
-              <TextArea
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData({...formData, requirements: e.target.value})}
-                placeholder="Ej: 3+ años de experiencia&#10;Inglés intermedio"
-                rows={3}
+              <Input
+                type="text"
+                defaultValue={formData.requirements}
+                onChange={(e) => setFormData({ ...formData, requirements: e.target.value })}
+                placeholder="Ej: 3+ años de experiencia\nInglés intermedio"
               />
             </div>
 
@@ -188,7 +183,7 @@ const AdminJobsPage = () => {
                 <Input
                   type="text"
                   defaultValue={formData.skills}
-                  onChange={(e) => setFormData({...formData, skills: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, skills: e.target.value })}
                   placeholder="React, Node.js, TypeScript"
                 />
               </div>
@@ -208,8 +203,11 @@ const AdminJobsPage = () => {
                 <Label>Salario mínimo</Label>
                 <Input
                   type="number"
-                  defaultValue={formData.salaryMin}
-                  onChange={(e) => setFormData({...formData, salaryMin: parseInt(e.target.value)})}
+                  defaultValue={formData.salaryRange.min}
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    salaryRange: { ...formData.salaryRange, min: parseInt(e.target.value) }
+                  })}
                   min="0"
                 />
               </div>
@@ -217,16 +215,19 @@ const AdminJobsPage = () => {
                 <Label>Salario máximo</Label>
                 <Input
                   type="number"
-                  defaultValue={formData.salaryMax}
-                  onChange={(e) => setFormData({...formData, salaryMax: parseInt(e.target.value)})}
+                  defaultValue={formData.salaryRange.max}
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    salaryRange: { ...formData.salaryRange, max: parseInt(e.target.value) }
+                  })}
                   min="0"
                 />
               </div>
               <div>
                 <Label>Moneda</Label>
                 <select
-                  value={formData.currency}
-                  onChange={(e) => setFormData({...formData, currency: e.target.value})}
+                  value={formData.salaryRange.currency}
+                  onChange={(e) => setFormData({...formData, salaryRange: {...formData.salaryRange, currency: e.target.value}})}
                   className="h-11 w-full appearance-none rounded-lg border border-gray-300 px-4 py-2.5 text-sm"
                 >
                   <option value="USD">USD</option>
@@ -253,7 +254,7 @@ const AdminJobsPage = () => {
                 <Label>Estado</Label>
                 <select
                   value={formData.status}
-                  onChange={(e) => setFormData({...formData, status: e.target.value as unknown as const})}
+                  onChange={(e) => setFormData({...formData, status: e.target.value})}
                   className="h-11 w-full appearance-none rounded-lg border border-gray-300 px-4 py-2.5 text-sm"
                 >
                   <option value="open">Abierta</option>
@@ -307,7 +308,7 @@ const AdminJobsPage = () => {
                     onClick={() => handleEdit(vacancy)}
                     className="p-2 text-gray-600 hover:text-brand-500"
                   >
-                    <PencilIcon className="w-5 h-5" />
+                    <Pencil className="w-5 h-5" />
                   </button>
                   <button
                     onClick={() => handleDelete(vacancy.id)}

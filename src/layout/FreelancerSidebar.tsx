@@ -5,17 +5,17 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useSidebar } from "../context/SidebarContext";
 import {
-  ChevronDownIcon,
-  GridIcon,
-  HorizontaLDots,
-  ListIcon,
-  UserCircleIcon,
-  FileIcon,
-  DollarIcon,
-  ShootingStarIcon,
-  PieChartIcon,
-  CalenderIcon,
+  ChevronDown,
+  Grid,
+  HorizontalDots,
+  List,
+  UserCircle,
+  File,
+  ShootingStar,
+  PieChart,
+  CalenderLine,
 } from "../icons/index";
+import DollarLine from "../icons/dollar-line";
 import SidebarWidget from "./SidebarWidget";
 
 type NavItem = {
@@ -27,12 +27,12 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   {
-    icon: <GridIcon />,
+    icon: <Grid />,
     name: "Dashboard",
     path: "/freelancer",
   },
   {
-    icon: <ListIcon />,
+    icon: <List />,
     name: "Mis Trabajos",
     subItems: [
       { name: "Buscar Trabajos", path: "/freelancer/jobs/search" },
@@ -41,7 +41,7 @@ const navItems: NavItem[] = [
     ],
   },
   {
-    icon: <FileIcon />,
+    icon: <File />,
     name: "Contratos",
     subItems: [
       { name: "Contratos Activos", path: "/freelancer/contracts/active" },
@@ -50,7 +50,7 @@ const navItems: NavItem[] = [
     ],
   },
   {
-    icon: <DollarIcon />,
+    icon: <DollarLine />,
     name: "Pagos",
     subItems: [
       { name: "Historial de Pagos", path: "/freelancer/payments/history" },
@@ -59,7 +59,7 @@ const navItems: NavItem[] = [
     ],
   },
   {
-    icon: <ShootingStarIcon />,
+    icon: <ShootingStar />,
     name: "Mi Desempeño",
     subItems: [
       { name: "Evaluaciones", path: "/freelancer/performance/evaluations" },
@@ -68,17 +68,17 @@ const navItems: NavItem[] = [
     ],
   },
   {
-    icon: <PieChartIcon />,
+    icon: <PieChart />,
     name: "Asistente IA",
     path: "/freelancer/ai-assistant",
   },
   {
-    icon: <CalenderIcon />,
+    icon: <CalenderLine />,
     name: "Soporte",
     path: "/freelancer/support",
   },
   {
-    icon: <UserCircleIcon />,
+    icon: <UserCircle />,
     name: "Mi Perfil",
     path: "/freelancer/profile",
   },
@@ -118,7 +118,7 @@ const FreelancerSidebar: React.FC = () => {
                 <span className={`menu-item-text`}>{nav.name}</span>
               )}
               {(isExpanded || isHovered || isMobileOpen) && (
-                <ChevronDownIcon
+                <ChevronDown
                   className={`ml-auto w-5 h-5 transition-transform duration-200  ${
                     openSubmenu === index
                       ? "rotate-180 text-brand-500"
@@ -319,7 +319,7 @@ const FreelancerSidebar: React.FC = () => {
                 {isExpanded || isHovered || isMobileOpen ? (
                   "Menu Freelancer"
                 ) : (
-                  <HorizontaLDots />
+                  <HorizontalDots />
                 )}
               </h2>
               {renderMenuItems(navItems)}

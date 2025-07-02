@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import React from "react";
 import Badge from "@/components/ui/badge/Badge";
-import { ArrowUpIcon, GroupIcon, BoxIconLine, PieChartIcon } from "@/icons";
+import { ArrowUpIcon, Group, BoxLine, PieChart } from "@/icons";
 import MonthlyTarget from "@/components/ecommerce/MonthlyTarget";
 import MonthlySalesChart from "@/components/ecommerce/MonthlySalesChart";
 import StatisticsChart from "@/components/ecommerce/StatisticsChart";
@@ -37,7 +37,7 @@ export default function Dashboard() {
         {/* Contrataciones activas */}
         <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
           <div className="flex items-center justify-center w-12 h-12 bg-gray-100 rounded-xl dark:bg-gray-800">
-            <GroupIcon className="text-gray-800 size-6 dark:text-white/90" />
+            <Group className="text-gray-800 size-6 dark:text-white/90" />
           </div>
           <div className="flex items-end justify-between mt-5">
             <div>
@@ -53,7 +53,7 @@ export default function Dashboard() {
         {/* Freelancers registrados */}
         <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
           <div className="flex items-center justify-center w-12 h-12 bg-gray-100 rounded-xl dark:bg-gray-800">
-            <BoxIconLine className="text-gray-800 dark:text-white/90" />
+            <BoxLine className="text-gray-800 dark:text-white/90" />
           </div>
           <div className="flex items-end justify-between mt-5">
             <div>
@@ -69,7 +69,7 @@ export default function Dashboard() {
         {/* Pagos procesados este mes */}
         <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
           <div className="flex items-center justify-center w-12 h-12 bg-gray-100 rounded-xl dark:bg-gray-800">
-            <PieChartIcon className="text-gray-800 dark:text-white/90" />
+            <PieChart className="text-gray-800 dark:text-white/90" />
           </div>
           <div className="flex items-end justify-between mt-5">
             <div>
@@ -85,7 +85,7 @@ export default function Dashboard() {
         {/* Empresas activas */}
         <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
           <div className="flex items-center justify-center w-12 h-12 bg-gray-100 rounded-xl dark:bg-gray-800">
-            <GroupIcon className="text-gray-800 size-6 dark:text-white/90" />
+            <Group className="text-gray-800 size-6 dark:text-white/90" />
           </div>
           <div className="flex items-end justify-between mt-5">
             <div>

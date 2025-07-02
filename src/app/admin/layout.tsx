@@ -21,7 +21,7 @@ export default function AdminLayout({
       <AppSidebar />
 
       {/* Content area */}
-      <div className={`relative flex flex-1 flex-col overflow-y-auto overflow-x-hidden transition-all duration-300 lg:${sidebarWidth}`}>
+      <div className={`relative flex flex-1 flex-col overflow-y-auto overflow-x-hidden transition-all duration-300 ${sidebarWidth}`}>
         {/* Header */}
         <AppHeader />
 

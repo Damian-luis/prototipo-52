@@ -6,16 +6,16 @@ import { usePathname } from "next/navigation";
 import { useSidebar } from "../context/SidebarContext";
 import {
   BoxCubeIcon,
-  CalenderIcon,
-  ChevronDownIcon,
-  GridIcon,
-  HorizontaLDots,
-  ListIcon,
-  PageIcon,
-  PieChartIcon,
-  PlugInIcon,
-  TableIcon,
-  UserCircleIcon,
+  CalenderLine,
+  ChevronDown,
+  Grid,
+  HorizontalDots,
+  PieChart,
+  PlugIn,
+  Table,
+  UserCircle,
+  List,
+  Page,
 } from "../icons/index";
 import SidebarWidget from "./SidebarWidget";
 
@@ -28,12 +28,12 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   {
-    icon: <GridIcon />,
+    icon: <Grid />,
     name: "Dashboard",
     path: "/admin",
   },
   {
-    icon: <UserCircleIcon />,
+    icon: <UserCircle />,
     name: "Gestión de Talento",
     subItems: [
       { name: "Ofertas de Trabajo", path: "/admin/others-pages/talent/jobs" },
@@ -50,17 +50,17 @@ const navItems: NavItem[] = [
     ],
   },
   {
-    icon: <CalenderIcon />,
+    icon: <CalenderLine />,
     name: "Soporte Técnico",
     path: "/admin/others-pages/support",
   },
   {
-    icon: <PieChartIcon />,
+    icon: <PieChart />,
     name: "Recomendaciones Inteligentes",
     path: "/admin/others-pages/ai-recommendations",
   },
   {
-    icon: <TableIcon />,
+    icon: <Table />,
     name: "Reportes",
     subItems: [
       { name: "Reportes Generales", path: "/admin/others-pages/reports" },
@@ -68,12 +68,12 @@ const navItems: NavItem[] = [
     ],
   },
   {
-    icon: <PlugInIcon />,
+    icon: <PlugIn />,
     name: "Integraciones",
     path: "/admin/others-pages/integrations",
   },
   {
-    icon: <UserCircleIcon />,
+    icon: <UserCircle />,
     name: "Perfil",
     path: "/admin/others-pages/profile",
   },
@@ -116,7 +116,7 @@ const AppSidebar: React.FC = () => {
                 <span className={`menu-item-text`}>{nav.name}</span>
               )}
               {(isExpanded || isHovered || isMobileOpen) && (
-                <ChevronDownIcon
+                <ChevronDown
                   className={`ml-auto w-5 h-5 transition-transform duration-200  ${
                     openSubmenu?.type === menuType &&
                     openSubmenu?.index === index
@@ -322,7 +322,7 @@ const AppSidebar: React.FC = () => {
                 {isExpanded || isHovered || isMobileOpen ? (
                   "Menu"
                 ) : (
-                  <HorizontaLDots />
+                  <HorizontalDots />
                 )}
               </h2>
               {renderMenuItems(navItems, "main")}

@@ -15,7 +15,11 @@ const ActiveContractsPage = () => {
     c => c.freelancerId === user?.id && c.status === 'active'
   );
 
-  const handleMilestoneUpdate = async (contractId: string, milestoneId: string, newStatus: unknown) => {
+  const handleMilestoneUpdate = async (
+    contractId: string,
+    milestoneId: string,
+    newStatus: 'pending' | 'in-progress' | 'completed' | 'approved'
+  ) => {
     try {
       const result = await updateMilestoneStatus(contractId, milestoneId, newStatus);
       if (result.success) {
@@ -163,7 +167,7 @@ const ActiveContractsPage = () => {
                               onChange={(e) => handleMilestoneUpdate(
                                 contract.id,
                                 milestone.id,
-                                e.target.value
+                                e.target.value as 'pending' | 'in-progress' | 'completed' | 'approved'
                               )}
                               className={`px-3 py-1 text-xs rounded-full ${
                                 milestone.status === 'completed' || milestone.status === 'approved'

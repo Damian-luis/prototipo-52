@@ -5,6 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import ComponentCard from "@/components/common/ComponentCard";
 import TextArea from "@/components/form/input/TextArea";
 import Label from "@/components/form/Label";
+import { AIConsultation, AIRecommendation } from "@/context/AIContext";
 
 const AIAssistantPage = () => {
   const { 
@@ -16,11 +17,11 @@ const AIAssistantPage = () => {
     getRecommendationsByUser
   } = useAI();
   const { user } = useAuth();
-  const [selectedCategory, setSelectedCategory] = useState<unknown>("career");
+  const [selectedCategory, setSelectedCategory] = useState<AIConsultation['category']>("career");
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
-  const [consultations, setConsultations] = useState<unknown[]>([]);
-  const [recommendations, setRecommendations] = useState<unknown[]>([]);
+  const [consultations, setConsultations] = useState<AIConsultation[]>([]);
+  const [recommendations, setRecommendations] = useState<AIRecommendation[]>([]);
 
   useEffect(() => {
     if (user) {
@@ -116,7 +117,7 @@ const AIAssistantPage = () => {
               {categories.map((category) => (
                 <button
                   key={category.id}
-                  onClick={() => setSelectedCategory(category.id)}
+                  onClick={() => setSelectedCategory(category.id as AIConsultation['category'])}
                   className={`w-full text-left p-3 rounded-lg transition-colors ${
                     selectedCategory === category.id
                       ? 'bg-brand-50 dark:bg-brand-900/20 border border-brand-300 dark:border-brand-700'

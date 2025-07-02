@@ -66,6 +66,18 @@ export interface FreelancerProfile {
   successRate: number;
 }
 
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  skills?: string[];
+  experience?: number;
+  hourlyRate?: number;
+  availability?: string;
+  portfolio?: string;
+}
+
 interface TalentContextType {
   vacancies: JobVacancy[];
   applications: Application[];
@@ -264,11 +276,11 @@ export const TalentProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     if (!job) return [];
 
     // Obtener usuarios freelancers del localStorage
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const freelancers = users.filter((u: unknown) => u.role === 'freelancer');
+    const users: User[] = JSON.parse(localStorage.getItem('users') || '[]');
+    const freelancers = users.filter((u) => u.role === 'freelancer');
 
     // Calcular similitud y ordenar
-    const recommendations = freelancers.map((freelancer: unknown) => {
+    const recommendations = freelancers.map((freelancer) => {
       const similarity = calculateCosineSimilarity(job.skills, freelancer.skills || []);
       const freelancerEvaluations = evaluations.filter(e => e.freelancerId === freelancer.id);
       const avgScore = freelancerEvaluations.length > 0
@@ -292,7 +304,7 @@ export const TalentProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     });
 
     return recommendations
-      .sort((a: unknown, b: unknown) => b.similarity - a.similarity)
+      .sort((a, b) => b.similarity - a.similarity)
       .slice(0, 5); // Top 5 recomendaciones
   };
 
