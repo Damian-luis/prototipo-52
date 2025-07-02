@@ -1,8 +1,23 @@
 import Link from 'next/link';
-import { Stack, Button } from '@chakra-ui/react';
 
-<Stack direction={{ base: "column", md: "row" }} spacing={4} mb={8} justify="center">
-  <Link href="/signin"><Button colorScheme="blue" size="lg">Iniciar Sesión</Button></Link>
-  <Link href="/signup"><Button variant="outline" colorScheme="blue" size="lg">Registrarse</Button></Link>
-  <Link href="/admin"><Button variant="ghost" colorScheme="blue" size="lg">Ver Dashboard</Button></Link>
-</Stack> 
+export default function AdminLanding() {
+  return (
+    <div style={{ display: "flex", gap: "1rem", justifyContent: "center", margin: "2rem 0" }}>
+      <Link href="/signin">
+        <button style={{ padding: "1rem 2rem", background: "#2563eb", color: "#fff", borderRadius: "8px", border: "none", fontSize: "1rem" }}>
+          Iniciar Sesión
+        </button>
+      </Link>
+      <Link href="/signup">
+        <button style={{ padding: "1rem 2rem", background: "#fff", color: "#2563eb", border: "2px solid #2563eb", borderRadius: "8px", fontSize: "1rem" }}>
+          Registrarse
+        </button>
+      </Link>
+      <Link href="/admin">
+        <button style={{ padding: "1rem 2rem", background: "transparent", color: "#2563eb", border: "none", fontSize: "1rem" }}>
+          Ver Dashboard
+        </button>
+      </Link>
+    </div>
+  );
+} 
