@@ -30,8 +30,8 @@ const mockData = {
     satisfaccion: [40, 30, 50, 40, 55, 40, 70, 100, 110, 120, 150, 140],
   },
   freelancersByCountry: [
-    { country: "Argentina", value: 120, percent: 79 },
-    { country: "México", value: 95, percent: 23 },
+    { country: "Estados unidos", value: 120, percent: 79 },
+    { country: "Francia", value: 95, percent: 23 },
     { country: "España", value: 80, percent: 18 },
     { country: "Colombia", value: 60, percent: 12 },
     { country: "Chile", value: 45, percent: 9 },
