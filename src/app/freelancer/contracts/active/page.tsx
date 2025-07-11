@@ -2,13 +2,18 @@
 import React, { useState } from "react";
 import { useContract } from "@/context/ContractContext";
 import { useAuth } from "@/context/AuthContext";
+import { useWeb3 } from "@/context/Web3Context";
 import ComponentCard from "@/components/common/ComponentCard";
 import Link from "next/link";
+import { Modal } from "@/components/ui/modal";
 
 const ActiveContractsPage = () => {
   const { contracts, updateMilestoneStatus } = useContract();
   const { user } = useAuth();
+  const { isConnected, account } = useWeb3();
   const [expandedContract, setExpandedContract] = useState<string | null>(null);
+  const [selectedMilestone, setSelectedMilestone] = useState<any>(null);
+  const [isPaymentRequestModalOpen, setIsPaymentRequestModalOpen] = useState(false);
 
   // Filtrar contratos activos del freelancer
   const activeContracts = contracts.filter(
@@ -32,10 +37,27 @@ const ActiveContractsPage = () => {
     }
   };
 
+  const handleRequestPayment = (contract: any, milestone: any) => {
+    setSelectedMilestone({ ...milestone, contractId: contract.id, contractTitle: contract.title });
+    setIsPaymentRequestModalOpen(true);
+  };
+
   const calculateProgress = (contract: any) => {
     if (!contract.milestones || contract.milestones.length === 0) return 0;
     const completed = contract.milestones.filter((m: any) => m.status === 'completed' || m.status === 'approved').length;
     return Math.round((completed / contract.milestones.length) * 100);
+  };
+
+  const getMilestoneStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed':
+      case 'approved':
+        return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400';
+      case 'in-progress':
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400';
+      default:
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+    }
   };
 
   return (
@@ -48,6 +70,15 @@ const ActiveContractsPage = () => {
           Gestiona tus proyectos en curso
         </p>
       </div>
+
+      {/* Aviso de Web3 */}
+      {!isConnected && (
+        <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+          <p className="text-sm text-blue-800 dark:text-blue-200">
+            Conecta tu wallet para solicitar pagos de hitos completados.
+          </p>
+        </div>
+      )}
 
       {activeContracts.length === 0 ? (
         <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-lg">
@@ -161,30 +192,46 @@ const ActiveContractsPage = () => {
                               </span>
                             </div>
                           </div>
-                          <div className="ml-4">
-                            <select
-                              value={milestone.status}
-                              onChange={(e) => handleMilestoneUpdate(
-                                contract.id,
-                                milestone.id,
-                                e.target.value as 'pending' | 'in-progress' | 'completed' | 'approved'
+                          <div className="flex flex-col items-end gap-2">
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${getMilestoneStatusColor(milestone.status)}`}>
+                              {milestone.status === 'pending' ? 'Pendiente' :
+                               milestone.status === 'in-progress' ? 'En progreso' :
+                               milestone.status === 'completed' ? 'Completado' :
+                               'Aprobado'}
+                            </span>
+                            
+                            {/* Acciones según el estado */}
+                            <div className="flex gap-2 mt-2">
+                              {milestone.status === 'pending' && (
+                                <button
+                                  onClick={() => handleMilestoneUpdate(contract.id, milestone.id, 'in-progress')}
+                                  className="text-xs px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+                                >
+                                  Iniciar
+                                </button>
                               )}
-                              className={`px-3 py-1 text-xs rounded-full ${
-                                milestone.status === 'completed' || milestone.status === 'approved'
-                                  ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
-                                  : milestone.status === 'in-progress'
-                                  ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400'
-                                  : 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400'
-                              }`}
-                              disabled={milestone.status === 'approved'}
-                            >
-                              <option value="pending">Pendiente</option>
-                              <option value="in-progress">En progreso</option>
-                              <option value="completed">Completado</option>
+                              {milestone.status === 'in-progress' && (
+                                <button
+                                  onClick={() => handleMilestoneUpdate(contract.id, milestone.id, 'completed')}
+                                  className="text-xs px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600"
+                                >
+                                  Marcar como completado
+                                </button>
+                              )}
+                              {milestone.status === 'completed' && (
+                                <button
+                                  onClick={() => handleRequestPayment(contract, milestone)}
+                                  className="text-xs px-2 py-1 bg-brand-500 text-white rounded hover:bg-brand-600"
+                                >
+                                  Solicitar pago
+                                </button>
+                              )}
                               {milestone.status === 'approved' && (
-                                <option value="approved">Aprobado</option>
+                                <span className="text-xs text-green-600 dark:text-green-400">
+                                  ✓ Pagado
+                                </span>
                               )}
-                            </select>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -192,7 +239,6 @@ const ActiveContractsPage = () => {
                   </div>
                 )}
 
-                {/* Acciones */}
                 <div className="flex gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
                   <Link
                     href={`/freelancer/contracts/${contract.id}`}
@@ -209,6 +255,61 @@ const ActiveContractsPage = () => {
           ))}
         </div>
       )}
+
+      {/* Modal de solicitud de pago */}
+      <Modal isOpen={isPaymentRequestModalOpen} onClose={() => setIsPaymentRequestModalOpen(false)} className="max-w-lg">
+        {selectedMilestone && (
+          <div className="p-6">
+            <h2 className="text-xl font-bold mb-4">Solicitar Pago de Hito</h2>
+            
+            <div className="space-y-4 mb-6">
+              <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <h3 className="font-semibold mb-2">{selectedMilestone.name}</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{selectedMilestone.description}</p>
+                <div className="mt-3 flex justify-between items-center">
+                  <span className="text-sm text-gray-500">Monto:</span>
+                  <span className="font-semibold">${selectedMilestone.amount.toLocaleString()}</span>
+                </div>
+              </div>
+
+              {isConnected && account && (
+                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                  <p className="text-sm text-blue-700 dark:text-blue-300">
+                    Tu dirección de wallet: {account.slice(0, 6)}...{account.slice(-4)}
+                  </p>
+                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                    El pago se enviará a esta dirección una vez aprobado por el cliente.
+                  </p>
+                </div>
+              )}
+
+              <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                  <strong>Nota:</strong> Al solicitar el pago, notificarás al cliente que el hito está completado y listo para revisión.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setIsPaymentRequestModalOpen(false)}
+                className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  alert("Solicitud de pago enviada al cliente");
+                  setIsPaymentRequestModalOpen(false);
+                }}
+                className="px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 font-medium"
+              >
+                Enviar Solicitud
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

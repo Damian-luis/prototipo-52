@@ -10,32 +10,66 @@ import React, { useState } from "react";
 export default function SignUpForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
-  const [form, setForm] = useState({ fname: "", lname: "", email: "", password: "" });
+  const [form, setForm] = useState({ 
+    fname: "", 
+    lname: "", 
+    email: "", 
+    password: "",
+    role: "freelancer" // Por defecto freelancer
+  });
   const [error, setError] = useState("");
   const router = useRouter();
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    
     if (!form.fname || !form.lname || !form.email || !form.password) {
       setError("Todos los campos son obligatorios");
       return;
     }
-    let users = [];
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("users");
-      users = stored ? JSON.parse(stored) : [];
-      if (users.some((u: any) => u.email === form.email)) {
-        setError("El email ya está registrado");
-        return;
-      }
-      users.push(form);
-      localStorage.setItem("users", JSON.stringify(users));
-      router.push("/signin");
+    
+    if (!isChecked) {
+      setError("Debes aceptar los términos y condiciones");
+      return;
+    }
+
+    // Guardar datos iniciales en localStorage
+    const initialData = {
+      firstName: form.fname,
+      lastName: form.lname,
+      email: form.email,
+      password: form.password, // Sin hashear para el prototipo
+      role: form.role,
+      registrationStep: 'initial',
+      createdAt: new Date().toISOString()
+    };
+
+    localStorage.setItem('pendingRegistration', JSON.stringify(initialData));
+    
+    // Redirigir según el rol
+    if (form.role === 'freelancer') {
+      router.push('/signup/complete-profile');
+    } else {
+      // Para admin, completar registro directamente
+      const adminUser = {
+        ...initialData,
+        id: Date.now().toString(),
+        status: 'active',
+        registrationStep: 'completed'
+      };
+      
+      // Guardar en lista de usuarios
+      const users = JSON.parse(localStorage.getItem('users') || '[]');
+      users.push(adminUser);
+      localStorage.setItem('users', JSON.stringify(users));
+      localStorage.removeItem('pendingRegistration');
+      
+      router.push('/signin');
     }
   };
 
@@ -62,6 +96,18 @@ export default function SignUpForm() {
           </div>
           <form onSubmit={handleSubmit}>
             <div className="space-y-5">
+              <div>
+                <Label>Tipo de cuenta<span className="text-error-500">*</span></Label>
+                <select
+                  name="role"
+                  value={form.role}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                >
+                  <option value="freelancer">Freelancer</option>
+                  <option value="admin">Empresa/Admin</option>
+                </select>
+              </div>
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                 <div className="sm:col-span-1">
                   <Label>Nombre<span className="text-error-500">*</span></Label>
@@ -107,8 +153,11 @@ export default function SignUpForm() {
               </div>
               {error && <div className="text-red-500 text-sm">{error}</div>}
               <div>
-                <button className="flex items-center justify-center w-full px-4 py-3 text-sm font-medium text-white transition rounded-lg bg-brand-500 shadow-theme-xs hover:bg-brand-600">
-                  Registrarse
+                <button 
+                  type="submit"
+                  className="flex items-center justify-center w-full px-4 py-3 text-sm font-medium text-white transition rounded-lg bg-brand-500 shadow-theme-xs hover:bg-brand-600"
+                >
+                  {form.role === 'freelancer' ? 'Continuar con el registro' : 'Registrarse'}
                 </button>
               </div>
             </div>

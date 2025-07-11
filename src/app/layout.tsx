@@ -5,6 +5,7 @@ import { SidebarProvider } from '@/context/SidebarContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { MockDataProvider } from "@/context/MockDataContext";
 import { AuthProvider } from '@/context/AuthContext';
+import { Web3Provider } from '@/context/Web3Context';
 import { TalentProvider } from '@/context/TalentContext';
 import { ContractProvider } from '@/context/ContractContext';
 import { PaymentProvider } from '@/context/PaymentContext';
@@ -25,19 +26,21 @@ export default function RootLayout({
       <body className={`${outfit.className} dark:bg-gray-900`}>
         <ThemeProvider>
           <AuthProvider>
-            <TalentProvider>
-              <ContractProvider>
-                <PaymentProvider>
-                  <SupportProvider>
-                    <AIProvider>
-                      <SidebarProvider>
-                        <MockDataProvider>{children}</MockDataProvider>
-                      </SidebarProvider>
-                    </AIProvider>
-                  </SupportProvider>
-                </PaymentProvider>
-              </ContractProvider>
-            </TalentProvider>
+            <Web3Provider>
+              <TalentProvider>
+                <ContractProvider>
+                  <PaymentProvider>
+                    <SupportProvider>
+                      <AIProvider>
+                        <SidebarProvider>
+                          <MockDataProvider>{children}</MockDataProvider>
+                        </SidebarProvider>
+                      </AIProvider>
+                    </SupportProvider>
+                  </PaymentProvider>
+                </ContractProvider>
+              </TalentProvider>
+            </Web3Provider>
           </AuthProvider>
         </ThemeProvider>
       </body>

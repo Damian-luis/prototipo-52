@@ -6,6 +6,7 @@ import ComponentCard from "@/components/common/ComponentCard";
 import TextArea from "@/components/form/input/TextArea";
 import Label from "@/components/form/Label";
 import { AIConsultation, AIRecommendation } from "@/context/AIContext";
+import ReactMarkdown from 'react-markdown';
 
 const AIAssistantPage = () => {
   const { 
@@ -22,6 +23,16 @@ const AIAssistantPage = () => {
   const [loading, setLoading] = useState(false);
   const [consultations, setConsultations] = useState<AIConsultation[]>([]);
   const [recommendations, setRecommendations] = useState<AIRecommendation[]>([]);
+  const [error, setError] = useState("");
+
+  const N8N_WEBHOOK_URL = "https://automation-biya.useteam.io/webhook/251e2883-46b7-4d3a-9fdf-97781cf6a116";
+  const TOPIC_MAP: Record<string, string> = {
+    career: "Desarrollo Profesional",
+    marketing_sales: "Marketing y Ventas",
+    legal_fiscal: "Legal y Fiscal",
+    technical: "Técnico",
+    business: "Negocio"
+  };
 
   useEffect(() => {
     if (user) {
@@ -75,6 +86,7 @@ const AIAssistantPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
     if (!user || !question.trim()) return;
 
     setLoading(true);
@@ -82,8 +94,14 @@ const AIAssistantPage = () => {
       await askAI(user.id, selectedCategory, question);
       setConsultations(getConsultationsByUser(user.id));
       setQuestion("");
+      const topic = TOPIC_MAP[selectedCategory] || "Negocio";
+      await fetch(N8N_WEBHOOK_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question, topic })
+      });
     } catch (error) {
-      alert("Error al procesar tu consulta");
+      setError("Error al procesar tu consulta. Intenta nuevamente.");
     } finally {
       setLoading(false);
     }
@@ -167,6 +185,7 @@ const AIAssistantPage = () => {
                 <TextArea
                   placeholder="Escribe tu pregunta aquí..."
                   rows={4}
+                  value={question}
                   onChange={(value) => setQuestion(value)}
                 />
               </div>
@@ -176,9 +195,12 @@ const AIAssistantPage = () => {
                   disabled={loading || !question.trim()}
                   className="px-6 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {loading ? "Procesando..." : "Enviar consulta"}
+                  {loading ? "Procesando..." : <><span role="img" aria-label="varita">🪄</span> Consultar IA</>}
                 </button>
               </div>
+              {error && (
+                <div className="text-red-600 font-medium mt-2">{error}</div>
+              )}
             </form>
           </ComponentCard>
 
@@ -224,9 +246,9 @@ const AIAssistantPage = () => {
                       </p>
                     </div>
                     <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                      <p className="text-sm text-gray-700 dark:text-gray-300">
-                        {consultation.answer}
-                      </p>
+                      <div className="text-sm text-gray-700 dark:text-gray-300">
+                        <ReactMarkdown>{consultation.answer}</ReactMarkdown>
+                      </div>
                     </div>
                     {consultation.helpful === null && (
                       <div className="mt-3 flex items-center gap-2">

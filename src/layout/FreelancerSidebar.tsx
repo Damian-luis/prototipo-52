@@ -44,6 +44,7 @@ const navItems: NavItem[] = [
     icon: <File />,
     name: "Contratos",
     subItems: [
+      { name: "Mis Contratos", path: "/freelancer/contracts" },
       { name: "Contratos Activos", path: "/freelancer/contracts/active" },
       { name: "Historial", path: "/freelancer/contracts/history" },
       { name: "Firmar Contrato", path: "/freelancer/contracts/pending" },

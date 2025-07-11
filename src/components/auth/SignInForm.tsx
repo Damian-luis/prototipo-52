@@ -41,7 +41,7 @@ export default function SignInForm() {
 
   return (
     <div className="flex flex-col flex-1 lg:w-1/2 w-full">
-      <div className="w-full max-w-md sm:pt-10 mx-auto mb-5">
+      <div className="w-full max-w-md sm:pt-20 mx-auto mb-5">
         <Link
           href="/"
           className="inline-flex items-center text-sm text-gray-500 transition-colors hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
@@ -115,6 +115,22 @@ export default function SignInForm() {
           <p className="text-sm text-blue-600 dark:text-blue-400">
             Freelancer: freelancer@example.com / freelancer123
           </p>
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              onClick={() => setForm({ email: 'admin@freelasaas.com', password: 'admin123' })}
+              className="flex-1 px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Ingresar como Admin
+            </button>
+            <button
+              type="button"
+              onClick={() => setForm({ email: 'freelancer@example.com', password: 'freelancer123' })}
+              className="flex-1 px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            >
+              Ingresar como Freelancer
+            </button>
+          </div>
         </div>
         <div className="relative py-3 sm:py-5 mb-6">
           <div className="absolute inset-0 flex items-center">

@@ -70,9 +70,34 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     const storedUsers = localStorage.getItem('users');
     const currentUser = localStorage.getItem('currentUser');
-    
+    let usersArr: User[] = [];
     if (storedUsers) {
-      setUsers(JSON.parse(storedUsers));
+      usersArr = JSON.parse(storedUsers);
+      // Migrar usuarios con _id a id
+      usersArr = usersArr.map(u => {
+        const anyUser = u as any;
+        if (!u.id && anyUser['_id']) {
+          u.id = anyUser['_id'];
+          delete anyUser['_id'];
+        }
+        return u;
+      });
+      // Verificar si existe el admin
+      const adminExists = usersArr.some(u => u.role === 'admin' && u.email === 'admin@freelasaas.com');
+      if (!adminExists) {
+        usersArr.unshift({
+          id: '1',
+          email: 'admin@freelasaas.com',
+          password: 'admin123',
+          name: 'Administrador',
+          role: 'admin',
+          createdAt: new Date().toISOString(),
+        } as User);
+        localStorage.setItem('users', JSON.stringify(usersArr));
+      }
+      // Guardar migración si hubo cambios
+      localStorage.setItem('users', JSON.stringify(usersArr));
+      setUsers(usersArr);
     } else {
       // Crear usuarios por defecto
       const defaultUsers: User[] = [
@@ -103,7 +128,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     if (currentUser) {
       try {
-        const userData = JSON.parse(currentUser);
+        let userData = JSON.parse(currentUser);
+        // Migrar currentUser con _id a id
+        const anyUserData = userData as any;
+        if (!userData.id && anyUserData['_id']) {
+          userData.id = anyUserData['_id'];
+          delete anyUserData['_id'];
+          localStorage.setItem('currentUser', JSON.stringify(userData));
+        }
         // Validar que el usuario tiene los campos mínimos
         if (userData && userData.id && userData.email && userData.role) {
           setUser(userData);

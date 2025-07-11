@@ -2,6 +2,7 @@
 import { ThemeToggleButton } from "@/components/common/ThemeToggleButton";
 import NotificationDropdown from "@/components/header/NotificationDropdown";
 import UserDropdown from "@/components/header/UserDropdown";
+import WalletConnect from "@/components/web3/WalletConnect";
 import { useSidebar } from "@/context/SidebarContext";
 import Image from "next/image";
 import Link from "next/link";
@@ -164,6 +165,10 @@ const AppHeader: React.FC = () => {
             {/* <!-- Dark Mode Toggler --> */}
             <ThemeToggleButton />
             {/* <!-- Dark Mode Toggler --> */}
+
+            {/* <!-- Web3 Wallet Connect --> */}
+            <WalletConnect />
+            {/* <!-- Web3 Wallet Connect --> */}
 
            <NotificationDropdown /> 
             {/* <!-- Notification Menu Area --> */}

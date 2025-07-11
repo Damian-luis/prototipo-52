@@ -3,12 +3,30 @@ import React from "react";
 import { useContract } from "@/context/ContractContext";
 import { useParams } from "next/navigation";
 import ComponentCard from "@/components/common/ComponentCard";
+import jsPDF from "jspdf";
 
 const ContractDetailAdminPage = () => {
   const { id } = useParams();
   const contractId = typeof id === "string" ? id : Array.isArray(id) ? id[0] : "";
   const { contracts } = useContract();
   const contract = contracts.find(c => c.id === contractId);
+
+  const handleDownloadPDF = () => {
+    if (!contract) return;
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.text(contract.title, 10, 15);
+    doc.setFontSize(12);
+    doc.text(`Freelancer: ${contract.freelancerName}`, 10, 30);
+    doc.text(`Cliente: ${contract.clientName}`, 10, 40);
+    doc.text(`Valor: $${contract.value} ${contract.currency}`, 10, 50);
+    doc.text(`Inicio: ${new Date(contract.startDate).toLocaleDateString()}`, 10, 60);
+    doc.text(`Fin: ${new Date(contract.endDate).toLocaleDateString()}`, 10, 70);
+    doc.text(`Estado: ${contract.status}`, 10, 80);
+    doc.text("Términos:", 10, 90);
+    doc.text(contract.terms || "", 10, 100, { maxWidth: 180 });
+    doc.save(`Contrato_${contract.title.replace(/\s+/g, "_")}.pdf`);
+  };
 
   if (!contract) {
     return (
@@ -63,6 +81,9 @@ const ContractDetailAdminPage = () => {
           </ul>
         </ComponentCard>
       )}
+      <div className="flex justify-end mt-8">
+        <button onClick={handleDownloadPDF} className="px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 font-medium">Descargar PDF</button>
+      </div>
     </div>
   );
 };

@@ -78,31 +78,6 @@ const MOTIVATIONAL_MESSAGES: MotivationalMessage[] = [
   }
 ];
 
-// Respuestas predefinidas para consultas de IA
-const AI_RESPONSES: Record<string, any> = {
-  marketing_sales: {
-    default: 'Para mejorar tu estrategia de marketing como freelancer, considera: 1) Definir claramente tu propuesta de valor única, 2) Crear un portfolio online profesional, 3) Utilizar LinkedIn para networking, 4) Compartir contenido de valor en tu área de expertise, 5) Solicitar testimonios de clientes satisfechos.',
-    pricing: 'Para establecer tus tarifas: 1) Investiga las tarifas del mercado en tu área, 2) Considera tu experiencia y especialización, 3) Calcula tus costos operativos, 4) Ofrece diferentes paquetes de servicios, 5) Ajusta gradualmente según la demanda.',
-    clients: 'Para atraer más clientes: 1) Optimiza tu perfil en plataformas freelance, 2) Participa en comunidades de tu industria, 3) Ofrece una consulta inicial gratuita, 4) Crea casos de estudio de proyectos exitosos, 5) Pide referidos a clientes actuales.'
-  },
-  legal_fiscal: {
-    default: 'Aspectos legales importantes: 1) Registra tu actividad como freelancer según las leyes locales, 2) Utiliza contratos claros para cada proyecto, 3) Mantén registros detallados de ingresos y gastos, 4) Separa las finanzas personales de las profesionales, 5) Consulta con un contador sobre deducciones fiscales.',
-    taxes: 'Para la gestión fiscal: 1) Aparta un porcentaje de cada pago para impuestos (20-30%), 2) Mantén facturas y recibos organizados, 3) Considera contratar un contador especializado en freelancers, 4) Conoce las fechas límite de declaraciones, 5) Investiga beneficios fiscales para trabajadores independientes.',
-    contracts: 'Elementos esenciales en contratos: 1) Alcance detallado del trabajo, 2) Plazos de entrega claros, 3) Condiciones de pago y penalizaciones, 4) Propiedad intelectual y confidencialidad, 5) Cláusulas de terminación y modificación.'
-  },
-  career: {
-    default: 'Para desarrollar tu carrera freelance: 1) Especialízate en un nicho específico, 2) Invierte en formación continua, 3) Construye una marca personal sólida, 4) Diversifica tus fuentes de ingresos, 5) Establece metas a corto y largo plazo.',
-    skills: 'Para mejorar tus habilidades: 1) Identifica las tendencias en tu industria, 2) Toma cursos online especializados, 3) Participa en proyectos que te desafíen, 4) Busca mentores en tu campo, 5) Practica y aplica lo aprendido en proyectos reales.',
-    growth: 'Para crecer profesionalmente: 1) Aumenta gradualmente tus tarifas con la experiencia, 2) Busca proyectos más complejos, 3) Colabora con otros freelancers, 4) Considera crear productos digitales, 5) Construye relaciones a largo plazo con clientes.'
-  },
-  technical: {
-    default: 'Para resolver problemas técnicos: 1) Documenta claramente el problema, 2) Busca en la documentación oficial, 3) Consulta en comunidades especializadas, 4) Considera contratar soporte especializado, 5) Mantén actualizadas tus herramientas de trabajo.'
-  },
-  business: {
-    default: 'Para mejorar tu negocio freelance: 1) Define tu propuesta de valor única, 2) Establece procesos eficientes, 3) Automatiza tareas repetitivas, 4) Construye una red de colaboradores, 5) Reinvierte en tu desarrollo profesional.'
-  }
-};
-
 export const AIProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [recommendations, setRecommendations] = useState<AIRecommendation[]>([]);
   const [consultations, setConsultations] = useState<AIConsultation[]>([]);
@@ -208,38 +183,26 @@ export const AIProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   };
 
   const askAI = async (userId: string, category: AIConsultation['category'], question: string): Promise<AIConsultation> => {
-    await new Promise(resolve => setTimeout(resolve, 1500));
-
-    // Buscar respuesta más relevante basada en palabras clave
-    let answer = AI_RESPONSES[category]?.default || 'Lo siento, no tengo información específica sobre eso.';
-    
-    const lowerQuestion = question.toLowerCase();
-    if (category === 'marketing_sales') {
-      if (lowerQuestion.includes('precio') || lowerQuestion.includes('tarifa')) {
-        answer = AI_RESPONSES.marketing_sales.pricing;
-      } else if (lowerQuestion.includes('cliente')) {
-        answer = AI_RESPONSES.marketing_sales.clients;
+    // Intentar obtener respuesta markdown de n8n
+    let answer = '';
+    try {
+      const res = await fetch('https://automation-biya.useteam.io/webhook/251e2883-46b7-4d3a-9fdf-97781cf6a116', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question, topic: category })
+      });
+      const data = await res.json();
+      // Si la respuesta viene en data.answer, úsala (puede venir con triple backtick, quitar si es necesario)
+      if (data.answer) {
+        answer = data.answer.replace(/^```markdown\n?|```$/g, '').trim();
       }
-    } else if (category === 'legal_fiscal') {
-      if (lowerQuestion.includes('impuesto') || lowerQuestion.includes('fiscal')) {
-        answer = AI_RESPONSES.legal_fiscal.taxes;
-      } else if (lowerQuestion.includes('contrato')) {
-        answer = AI_RESPONSES.legal_fiscal.contracts;
-      }
-    } else if (category === 'career') {
-      if (lowerQuestion.includes('habilidad') || lowerQuestion.includes('aprender')) {
-        answer = AI_RESPONSES.career.skills;
-      } else if (lowerQuestion.includes('crecer') || lowerQuestion.includes('desarrollo')) {
-        answer = AI_RESPONSES.career.growth;
-      }
-    } else if (category === 'technical') {
-      if (lowerQuestion.includes('problema') || lowerQuestion.includes('resolver')) {
-        answer = AI_RESPONSES.technical.default;
-      }
-    } else if (category === 'business') {
-      if (lowerQuestion.includes('negocio') || lowerQuestion.includes('mejorar')) {
-        answer = AI_RESPONSES.business.default;
-      }
+    } catch (e) {
+      // Si falla el fetch, usar respuesta simulada
+      answer = '';
+    }
+    // Si no hay respuesta de n8n, usar fallback genérico
+    if (!answer) {
+      answer = 'Lo siento, no tengo información específica sobre eso.';
     }
 
     const consultation: AIConsultation = {

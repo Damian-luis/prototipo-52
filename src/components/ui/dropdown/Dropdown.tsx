@@ -1,12 +1,13 @@
 "use client";
-import type React from "react";
-import { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import ReactDOM from "react-dom";
 
 interface DropdownProps {
   isOpen: boolean;
   onClose: () => void;
   children: React.ReactNode;
   className?: string;
+  triggerRef?: React.RefObject<HTMLElement | null>;
 }
 
 export const Dropdown: React.FC<DropdownProps> = ({
@@ -14,35 +15,65 @@ export const Dropdown: React.FC<DropdownProps> = ({
   onClose,
   children,
   className = "",
+  triggerRef
 }) => {
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState<{ top: number; left: number; width: number } | null>(null);
 
- useEffect(() => {
-  const handleClickOutside = (event: MouseEvent) => {
-    if (
-      dropdownRef.current &&
-      !dropdownRef.current.contains(event.target as Node) &&
-      !(event.target as HTMLElement).closest('.dropdown-toggle')
-    ) {
-      onClose();
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node) &&
+        !(event.target as HTMLElement).closest('.dropdown-toggle')
+      ) {
+        onClose();
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [onClose]);
+
+  useEffect(() => {
+    if (isOpen && triggerRef?.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      let left = rect.left + window.scrollX;
+      let top = rect.bottom + window.scrollY;
+      let width = rect.width;
+      const menuWidth = 260;
+      const viewportWidth = window.innerWidth;
+      if (left + menuWidth > viewportWidth - 8) {
+        left = viewportWidth - menuWidth - 8;
+      }
+      setPosition({ top, left, width });
     }
-  };
-
-  document.addEventListener("mousedown", handleClickOutside);
-  return () => {
-    document.removeEventListener("mousedown", handleClickOutside);
-  };
-}, [onClose]);
-
+  }, [isOpen, triggerRef]);
 
   if (!isOpen) return null;
 
-  return (
+  const dropdownContent = (
     <div
       ref={dropdownRef}
-      className={`absolute z-40  right-0 mt-2  rounded-xl border border-gray-200 bg-white  shadow-theme-lg dark:border-gray-800 dark:bg-gray-dark ${className}`}
+      style={position ? {
+        position: 'absolute',
+        top: position.top,
+        left: position.left,
+        minWidth: position.width,
+        zIndex: 9999
+      } : {
+        position: 'absolute',
+        right: 0,
+        top: '100%',
+        zIndex: 9999
+      }}
+      className={`rounded-xl border border-gray-200 bg-white shadow-theme-lg dark:border-gray-800 dark:bg-gray-dark ${className}`}
     >
       {children}
     </div>
   );
+
+  return ReactDOM.createPortal(dropdownContent, document.body);
 };

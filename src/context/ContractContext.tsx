@@ -41,14 +41,22 @@ export interface Signature {
   role: 'freelancer' | 'client';
   signedAt: string;
   ipAddress: string;
-  signature: string; // Hash simulado
+  signature: string; // Hash simulado o firma real
+  wallet?: string; // Dirección de la wallet
+  contractHash?: string; // Hash del contrato firmado
 }
 
 interface ContractContextType {
   contracts: Contract[];
   createContract: (contract: Omit<Contract, 'id' | 'createdAt' | 'updatedAt' | 'signatures' | 'status'>) => Promise<{ success: boolean; message: string; contractId?: string }>;
   updateContract: (id: string, contract: Partial<Contract>) => Promise<{ success: boolean; message: string }>;
-  signContract: (contractId: string, userId: string, userName: string, role: 'freelancer' | 'client') => Promise<{ success: boolean; message: string }>;
+  signContract: (
+    contractId: string,
+    userId: string,
+    userName: string,
+    role: 'freelancer' | 'client',
+    blockchainSignature?: { wallet: string; signature: string; contractHash: string }
+  ) => Promise<{ success: boolean; message: string }>;
   getContractsByFreelancer: (freelancerId: string) => Contract[];
   getContractsByClient: (clientId: string) => Contract[];
   getContractById: (id: string) => Contract | undefined;
@@ -154,7 +162,7 @@ export const ContractProvider: React.FC<{ children: ReactNode }> = ({ children }
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       signatures: [],
-      status: 'draft'
+      status: 'pending'
     };
 
     const updatedContracts = [...contracts, newContract];
@@ -180,7 +188,13 @@ export const ContractProvider: React.FC<{ children: ReactNode }> = ({ children }
     return { success: true, message: 'Contrato actualizado exitosamente' };
   };
 
-  const signContract = async (contractId: string, userId: string, userName: string, role: 'freelancer' | 'client'): Promise<{ success: boolean; message: string }> => {
+  const signContract = async (
+    contractId: string,
+    userId: string,
+    userName: string,
+    role: 'freelancer' | 'client',
+    blockchainSignature?: { wallet: string; signature: string; contractHash: string }
+  ): Promise<{ success: boolean; message: string }> => {
     const contract = contracts.find(c => c.id === contractId);
     if (!contract) {
       return { success: false, message: 'Contrato no encontrado' };
@@ -198,7 +212,9 @@ export const ContractProvider: React.FC<{ children: ReactNode }> = ({ children }
       role,
       signedAt: new Date().toISOString(),
       ipAddress: '192.168.1.' + Math.floor(Math.random() * 255),
-      signature: 'sig_' + Math.random().toString(36).substring(2, 15)
+      signature: blockchainSignature?.signature || 'sig_' + Math.random().toString(36).substring(2, 15),
+      wallet: blockchainSignature?.wallet,
+      contractHash: blockchainSignature?.contractHash,
     };
 
     const updatedContract = {
