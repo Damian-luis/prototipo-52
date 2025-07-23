@@ -2,10 +2,11 @@
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { UserRole } from '@/types';
 
 interface AuthGuardProps {
   children: React.ReactNode;
-  requiredRole?: 'admin' | 'freelancer';
+  requiredRole?: UserRole;
   redirectTo?: string;
 }
 
@@ -26,10 +27,21 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({
 
     if (requiredRole && user?.role !== requiredRole) {
       // Redirigir según el rol del usuario
-      if (user?.role === 'admin') {
-        router.push('/admin');
-      } else {
-        router.push('/freelancer');
+      switch (user?.role) {
+        case 'admin':
+          router.push('/admin');
+          break;
+        case 'empresa':
+          router.push('/empresa');
+          break;
+        case 'profesional':
+          router.push('/freelancer');
+          break;
+        case 'especialista':
+          router.push('/especialista');
+          break;
+        default:
+          router.push('/');
       }
     }
   }, [isAuthenticated, user, requiredRole, router, redirectTo, loading]);

@@ -8,7 +8,6 @@ import {
 } from "../ui/table";
 import Badge from "../ui/badge/Badge";
 import Image from "next/image";
-import { useMockData } from "@/context/MockDataContext";
 
 // Define the TypeScript interface for the table rows
 interface Contrato {
@@ -19,17 +18,15 @@ interface Contrato {
   estado: "Pagado" | "Pendiente" | "Cancelado";
 }
 
-// Define the table data using the interface
-const tableData: Contrato[] = [
-  { id: 1, freelancer: "Juan Pérez", empresa: "Globant", monto: "$1,200", estado: "Pagado" },
-  { id: 2, freelancer: "Ana López", empresa: "MercadoLibre", monto: "$900", estado: "Pendiente" },
-  { id: 3, freelancer: "Carlos Ruiz", empresa: "Telefónica", monto: "$1,500", estado: "Pagado" },
-  { id: 4, freelancer: "María Gómez", empresa: "Despegar", monto: "$1,100", estado: "Cancelado" },
-  { id: 5, freelancer: "Pedro Sánchez", empresa: "BBVA", monto: "$2,000", estado: "Pagado" },
-];
-
 export default function RecentOrders() {
-  const { recentContracts } = useMockData();
+  // Datos mock locales para contratos recientes
+  const recentContracts: Contrato[] = [
+    { id: 1, freelancer: "Juan Pérez", empresa: "Globant", monto: "$1,200", estado: "Pagado" },
+    { id: 2, freelancer: "Ana López", empresa: "MercadoLibre", monto: "$900", estado: "Pendiente" },
+    { id: 3, freelancer: "Carlos Ruiz", empresa: "Telefónica", monto: "$1,500", estado: "Pagado" },
+    { id: 4, freelancer: "María Gómez", empresa: "Despegar", monto: "$1,100", estado: "Cancelado" },
+    { id: 5, freelancer: "Pedro Sánchez", empresa: "BBVA", monto: "$2,000", estado: "Pagado" },
+  ];
 
   return (
     <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white px-4 pb-3 pt-4 dark:border-gray-800 dark:bg-white/[0.03] sm:px-6">

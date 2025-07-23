@@ -7,14 +7,22 @@ import { Dropdown } from "../ui/dropdown/Dropdown";
 import { MoreDot } from "@/icons";
 import { useState } from "react";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
-import { useMockData } from "@/context/MockDataContext";
+
 // Dynamically import the ReactApexChart component
 const ReactApexChart = dynamic(() => import("react-apexcharts"), {
   ssr: false,
 });
 
 export default function MonthlyTarget() {
-  const { monthlyTarget } = useMockData();
+  // Datos mock locales para la meta mensual
+  const monthlyTarget = {
+    porcentaje: 78,
+    descripcion: "Estamos en camino de alcanzar nuestra meta mensual de contrataciones. El equipo está trabajando duro para conectar a más empresas con profesionales talentosos.",
+    metaMensual: "150",
+    pagosProcesados: "89",
+    contratacionesHoy: "12"
+  };
+
   const series = [monthlyTarget.porcentaje];
   const options: ApexOptions = {
     colors: ["#465FFF"],

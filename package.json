@@ -18,6 +18,8 @@
     "@headlessui/react": "^2.2.4",
     "@react-jvectormap/core": "^1.0.4",
     "@react-jvectormap/world": "^1.1.2",
+    "@supabase/ssr": "^0.6.1",
+    "@supabase/supabase-js": "^2.52.0",
     "@tailwindcss/forms": "^0.5.9",
     "@tailwindcss/postcss": "^4.0.9",
     "apexcharts": "^4.3.0",
@@ -35,6 +37,7 @@
     "react-feather": "^2.0.10",
     "react-icons": "^5.5.0",
     "react-markdown": "^10.1.0",
+    "recharts": "^3.1.0",
     "swiper": "^11.2.0",
     "tailwind-merge": "^2.6.0"
   },

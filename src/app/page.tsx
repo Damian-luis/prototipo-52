@@ -3,6 +3,9 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
+import Navbar from "@/components/ui/navigation/Navbar";
+import StatsCard from "@/components/ui/stats/StatsCard";
+import Card from "@/components/ui/card/Card";
 
 export default function Home() {
   const router = useRouter();
@@ -11,10 +14,21 @@ export default function Home() {
   useEffect(() => {
     if (isAuthenticated && user) {
       // Redirigir según el rol del usuario
-      if (user.role === 'admin') {
-        router.push('/admin');
-      } else {
-        router.push('/freelancer');
+      switch (user.role) {
+        case 'admin':
+          router.push('/admin');
+          break;
+        case 'empresa':
+          router.push('/empresa');
+          break;
+        case 'profesional':
+          router.push('/freelancer');
+          break;
+        case 'especialista':
+          router.push('/especialista');
+          break;
+        default:
+          router.push('/');
       }
     }
     // Si no está autenticado, no redirige, muestra la landing
@@ -27,9 +41,9 @@ export default function Home() {
 
   // Mostrar un loading mientras se determina la redirección
   return (
-    <div className="flex items-center justify-center min-h-screen">
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-primary-50 to-secondary-50 dark:from-gray-900 dark:to-gray-800">
       <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-500 mx-auto mb-4"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
         <p className="text-gray-600 dark:text-gray-400">Cargando...</p>
       </div>
     </div>
@@ -38,158 +52,373 @@ export default function Home() {
 
 export function LandingPage() {
   return (
-    <main className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-gray-900 dark:to-gray-800 min-h-screen">
-      {/* HERO */}
-      <section className="max-w-5xl mx-auto px-4 pt-24 pb-16 text-center flex flex-col items-center">
-        <img src="/images/logo/logo.svg" alt="FreelaSaaS Logo" className="h-14 mb-6" />
-        <h1 className="text-4xl md:text-6xl font-extrabold text-blue-900 dark:text-white mb-6 leading-tight">
-          Gestiona y paga freelancers <span className="text-blue-600">en todo el mundo</span> con un solo clic
-        </h1>
-        <p className="text-lg md:text-2xl text-gray-700 dark:text-gray-200 mb-8 max-w-2xl mx-auto">
-          FreelaSaaS es la plataforma integral para empresas y freelancers que buscan eficiencia, cumplimiento y escalabilidad internacional.
-        </p>
-        <div className="flex flex-col md:flex-row gap-4 justify-center mb-8">
-          <Link href="/signin"><button className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold shadow hover:bg-blue-700 transition">Iniciar Sesión</button></Link>
-          <Link href="/signup"><button className="bg-white text-blue-700 border border-blue-600 px-8 py-3 rounded-lg font-semibold shadow hover:bg-blue-50 transition dark:bg-gray-900 dark:text-white dark:border-white">Registrarse</button></Link>
-        </div>
-        <div className="w-full flex justify-center mt-8">
-          <img src="/images/grid-image/image-01.png" alt="Dashboard FreelaSaaS" width={900} height={480} className="rounded-xl shadow-xl border border-blue-100 dark:border-gray-800" />
-        </div>
-      </section>
-      {/* HIGHLIGHTS */}
-      <section className="max-w-5xl mx-auto px-4 py-12 grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div className="bg-white dark:bg-gray-900 rounded-xl p-8 shadow flex flex-col items-center text-center">
-          <div className="text-4xl mb-4">⚡</div>
-          <h3 className="text-xl font-bold mb-2 text-blue-800 dark:text-white">Automatización total</h3>
-          <p className="text-gray-600 dark:text-gray-300">Reduce costos y tiempos operativos con flujos automáticos de contratación y pago.</p>
-        </div>
-        <div className="bg-white dark:bg-gray-900 rounded-xl p-8 shadow flex flex-col items-center text-center">
-          <div className="text-4xl mb-4">🤖</div>
-          <h3 className="text-xl font-bold mb-2 text-blue-800 dark:text-white">IA para recomendaciones</h3>
-          <p className="text-gray-600 dark:text-gray-300">Encuentra el mejor talento con algoritmos inteligentes y análisis de desempeño.</p>
-        </div>
-        <div className="bg-white dark:bg-gray-900 rounded-xl p-8 shadow flex flex-col items-center text-center">
-          <div className="text-4xl mb-4">🌎</div>
-          <h3 className="text-xl font-bold mb-2 text-blue-800 dark:text-white">Escalabilidad internacional</h3>
-          <p className="text-gray-600 dark:text-gray-300">Gestiona freelancers y empresas en cualquier país, cumpliendo normativas locales.</p>
-        </div>
-      </section>
-      {/* FEATURES */}
-      <section className="max-w-6xl mx-auto px-4 py-16">
-        <h2 className="text-3xl font-bold text-blue-900 dark:text-white mb-10 text-center">Funcionalidades principales</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="bg-white dark:bg-gray-900 rounded-xl p-8 shadow flex flex-col items-center text-center">
-            <div className="text-4xl mb-4">💼</div>
-            <h3 className="text-lg font-bold mb-2 text-blue-800 dark:text-white">Gestión de Talento</h3>
-            <p className="text-gray-600 dark:text-gray-300">Publica ofertas, recibe recomendaciones inteligentes y haz seguimiento de procesos de selección en múltiples países.</p>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-25 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      <Navbar />
+      
+      <main>
+        {/* HERO SECTION */}
+        <section className="relative overflow-hidden pt-20 pb-16">
+          {/* Background Pattern */}
+          <div className="absolute inset-0 bg-gradient-to-br from-primary-50/50 to-secondary-50/50 dark:from-primary-900/20 dark:to-secondary-900/20"></div>
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width=&quot;60&quot; height=&quot;60&quot; viewBox=&quot;0 0 60 60&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot;%3E%3Cg fill=&quot;none&quot; fill-rule=&quot;evenodd&quot;%3E%3Cg fill=&quot;%230284c7&quot; fill-opacity=&quot;0.05&quot;%3E%3Ccircle cx=&quot;30&quot; cy=&quot;30&quot; r=&quot;2&quot;/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-30"></div>
+          
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            {/* Logo */}
+            <div className="mb-8">
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-primary-500 to-accent-500 rounded-3xl shadow-xl mb-8">
+                <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold text-gray-900 dark:text-white mb-8 leading-tight">
+                Plataforma de <span className="bg-gradient-to-r from-primary-600 via-accent-600 to-secondary-600 bg-clip-text text-transparent">Outsourcing</span> Inteligente
+              </h1>
+              <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 mb-10 max-w-4xl mx-auto leading-relaxed">
+                Conectamos empresas con profesionales talentosos usando IA avanzada. 
+                Gestión integral de proyectos, contratos y pagos en una sola plataforma moderna y segura.
+              </p>
+            </div>
+
+            {/* CTA Buttons */}
+            <div className="flex flex-col sm:flex-row gap-6 justify-center mb-16">
+              <Link href="/signin">
+                <button className="group relative px-10 py-4 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-2xl font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 text-lg">
+                  <span className="relative z-10">Iniciar Sesión</span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-primary-700 to-accent-600 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                </button>
+              </Link>
+              <Link href="/signup">
+                <button className="px-10 py-4 bg-white dark:bg-gray-800 text-primary-700 dark:text-primary-300 border-2 border-primary-200 dark:border-primary-700 rounded-2xl font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 hover:bg-primary-50 dark:hover:bg-gray-700 text-lg">
+                  Registrarse Gratis
+                </button>
+              </Link>
+            </div>
+
+            {/* Hero Image */}
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-primary-500/20 to-secondary-500/20 rounded-3xl blur-3xl"></div>
+              <div className="relative bg-white dark:bg-gray-800 rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+                <img 
+                  src="/images/grid-image/image-01.png" 
+                  alt="Dashboard Outsourcing" 
+                  className="w-full h-auto"
+                />
+              </div>
+            </div>
           </div>
-          <div className="bg-white dark:bg-gray-900 rounded-xl p-8 shadow flex flex-col items-center text-center">
-            <div className="text-4xl mb-4">📝</div>
-            <h3 className="text-lg font-bold mb-2 text-blue-800 dark:text-white">Contratos y Pagos</h3>
-            <p className="text-gray-600 dark:text-gray-300">Genera, firma y gestiona contratos electrónicos. Automatiza pagos, deducciones fiscales y cumple normativas internacionales.</p>
+        </section>
+
+        {/* STATS SECTION */}
+        <section className="py-16 bg-white dark:bg-gray-900">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <StatsCard
+                title="Profesionales Activos"
+                value="2,847"
+                change={{ value: 12, type: "increase" }}
+                trend="up"
+                color="primary"
+                icon={
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                  </svg>
+                }
+              />
+              <StatsCard
+                title="Empresas Registradas"
+                value="156"
+                change={{ value: 8, type: "increase" }}
+                trend="up"
+                color="secondary"
+                icon={
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                }
+              />
+              <StatsCard
+                title="Proyectos Completados"
+                value="1,234"
+                change={{ value: 3, type: "decrease" }}
+                trend="down"
+                color="success"
+                icon={
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                }
+              />
+              <StatsCard
+                title="Satisfacción Cliente"
+                value="98%"
+                change={{ value: 2, type: "increase" }}
+                trend="up"
+                color="info"
+                icon={
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                }
+              />
+            </div>
           </div>
-          <div className="bg-white dark:bg-gray-900 rounded-xl p-8 shadow flex flex-col items-center text-center">
-            <div className="text-4xl mb-4">📊</div>
-            <h3 className="text-lg font-bold mb-2 text-blue-800 dark:text-white">Panel Personalizado</h3>
-            <p className="text-gray-600 dark:text-gray-300">Visualiza métricas clave, tareas, alertas y reportes exportables en PDF/Excel.</p>
+        </section>
+
+        {/* FEATURES HIGHLIGHTS */}
+        <section className="py-24 bg-gradient-to-br from-gray-50 to-primary-25 dark:from-gray-800 dark:to-gray-900">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-20">
+              <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-6">
+                ¿Por qué elegir nuestra plataforma?
+              </h2>
+              <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+                Tecnología de vanguardia que revoluciona la gestión de outsourcing con IA y blockchain
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+              <Card hover gradient className="text-center">
+                <div className="w-20 h-20 bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl flex items-center justify-center mb-8 mx-auto group-hover:scale-110 transition-transform duration-300">
+                  <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                </div>
+                <h3 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">IA para Matching</h3>
+                <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-lg">
+                  Algoritmos de IA avanzados que analizan habilidades, experiencia y compatibilidad para encontrar el profesional perfecto para cada proyecto.
+                </p>
+              </Card>
+
+              <Card hover gradient className="text-center">
+                <div className="w-20 h-20 bg-gradient-to-br from-secondary-500 to-secondary-600 rounded-2xl flex items-center justify-center mb-8 mx-auto group-hover:scale-110 transition-transform duration-300">
+                  <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                  </svg>
+                </div>
+                <h3 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Gestión Inteligente</h3>
+                <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-lg">
+                  Control completo de proyectos con seguimiento en tiempo real, automatización de tareas y análisis de rendimiento avanzado.
+                </p>
+              </Card>
+
+              <Card hover gradient className="text-center">
+                <div className="w-20 h-20 bg-gradient-to-br from-accent-500 to-accent-600 rounded-2xl flex items-center justify-center mb-8 mx-auto group-hover:scale-110 transition-transform duration-300">
+                  <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                </div>
+                <h3 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Seguridad Blockchain</h3>
+                <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-lg">
+                  Contratos inteligentes, pagos automatizados y transacciones seguras con tecnología blockchain de última generación.
+                </p>
+              </Card>
+            </div>
           </div>
-          <div className="bg-white dark:bg-gray-900 rounded-xl p-8 shadow flex flex-col items-center text-center">
-            <div className="text-4xl mb-4">🔗</div>
-            <h3 className="text-lg font-bold mb-2 text-blue-800 dark:text-white">Integraciones</h3>
-            <p className="text-gray-600 dark:text-gray-300">Conecta con Upwork, Fiverr, LinkedIn, ERPs y más para potenciar tu operación.</p>
+        </section>
+
+        {/* DETAILED FEATURES */}
+        <section className="py-24 bg-white dark:bg-gray-900">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-20">
+              <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-6">
+                Funcionalidades Principales
+              </h2>
+              <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+                Todo lo que necesitas para gestionar tu outsourcing de manera eficiente y moderna
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {[
+                {
+                  icon: "💼",
+                  title: "Portal de Empresas",
+                  description: "Gestiona proyectos, equipos, contratos y pagos con paneles de rendimiento en tiempo real."
+                },
+                {
+                  icon: "👨‍💻",
+                  title: "Portal de Profesionales",
+                  description: "Actualiza tu perfil, gestiona proyectos, pagos y recibe asesorías personalizadas."
+                },
+                {
+                  icon: "📊",
+                  title: "Analytics Avanzados",
+                  description: "Reportes detallados, métricas de rendimiento y insights para optimizar tu operación."
+                },
+                {
+                  icon: "🔔",
+                  title: "Notificaciones Inteligentes",
+                  description: "Alertas en tiempo real para cambios en proyectos, pagos y asesorías."
+                },
+                {
+                  icon: "🎯",
+                  title: "Asesoría Profesional",
+                  description: "Sesiones de asesoría en salud, bienestar laboral y desarrollo profesional."
+                },
+                {
+                  icon: "⚡",
+                  title: "Automatización Total",
+                  description: "Flujos automáticos de contratación, pagos y gestión de proyectos."
+                }
+              ].map((feature, index) => (
+                <Card key={index} hover className="text-center">
+                  <div className="text-5xl mb-8">{feature.icon}</div>
+                  <h3 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">{feature.title}</h3>
+                  <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-lg">{feature.description}</p>
+                </Card>
+              ))}
+            </div>
           </div>
-          <div className="bg-white dark:bg-gray-900 rounded-xl p-8 shadow flex flex-col items-center text-center">
-            <div className="text-4xl mb-4">🔒</div>
-            <h3 className="text-lg font-bold mb-2 text-blue-800 dark:text-white">Soporte y Seguridad</h3>
-            <p className="text-gray-600 dark:text-gray-300">Sistema de tickets, validación de accesos y cumplimiento normativo internacional.</p>
+        </section>
+
+        {/* TESTIMONIALS SECTION */}
+        <section className="py-24 bg-gradient-to-br from-primary-50 to-secondary-50 dark:from-primary-900/20 dark:to-secondary-900/20">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-20">
+              <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-6">
+                Lo que dicen nuestros clientes
+              </h2>
+              <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+                Empresas y profesionales que confían en nuestra plataforma
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {[
+                {
+                  name: "María González",
+                  role: "CEO, TechStart",
+                  content: "La plataforma ha revolucionado nuestra forma de contratar talento. La IA nos ayuda a encontrar profesionales perfectos para cada proyecto.",
+                  avatar: "/images/user/user-02.jpg"
+                },
+                {
+                  name: "Carlos Rodríguez",
+                  role: "Freelancer Senior",
+                  content: "Excelente plataforma para gestionar proyectos y recibir pagos de forma segura. La automatización me ahorra mucho tiempo.",
+                  avatar: "/images/user/user-03.jpg"
+                },
+                {
+                  name: "Ana Martínez",
+                  role: "HR Manager, InnovateCorp",
+                  content: "La gestión de contratos y pagos es impecable. Hemos aumentado nuestra productividad en un 40% desde que usamos la plataforma.",
+                  avatar: "/images/user/user-04.jpg"
+                }
+              ].map((testimonial, index) => (
+                <Card key={index} className="text-center">
+                  <div className="mb-6">
+                    <img 
+                      src={testimonial.avatar} 
+                      alt={testimonial.name}
+                      className="w-16 h-16 rounded-full mx-auto mb-4 object-cover"
+                    />
+                    <p className="text-gray-600 dark:text-gray-300 italic text-lg mb-4">
+                      "{testimonial.content}"
+                    </p>
+                    <h4 className="font-semibold text-gray-900 dark:text-white">{testimonial.name}</h4>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{testimonial.role}</p>
+                  </div>
+                </Card>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
-      {/* TESTIMONIALS */}
-      <section className="max-w-4xl mx-auto px-4 py-16">
-        <h2 className="text-2xl font-bold text-blue-900 dark:text-white mb-8 text-center">Lo que dicen nuestros usuarios</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="bg-white dark:bg-gray-900 rounded-xl p-8 shadow flex flex-col items-center text-center">
-            <img src="/images/avatar1.png" alt="Sofía Martínez" className="rounded-full mb-4 w-16 h-16" />
-            <p className="text-gray-700 dark:text-gray-200 mb-4">“FreelaSaaS nos permitió contratar y pagar talento en 5 países sin dolores de cabeza. La automatización y el soporte son excelentes.”</p>
-            <div className="font-bold text-blue-800 dark:text-white">Sofía Martínez</div>
-            <div className="text-sm text-gray-500 dark:text-gray-400">HR Manager, TechGlobal</div>
+        </section>
+
+        {/* CTA SECTION */}
+        <section className="py-24 bg-gradient-to-br from-primary-600 to-accent-600 relative overflow-hidden">
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width=&quot;60&quot; height=&quot;60&quot; viewBox=&quot;0 0 60 60&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot;%3E%3Cg fill=&quot;none&quot; fill-rule=&quot;evenodd&quot;%3E%3Cg fill=&quot;%23ffffff&quot; fill-opacity=&quot;0.1&quot;%3E%3Ccircle cx=&quot;30&quot; cy=&quot;30&quot; r=&quot;2&quot;/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')]"></div>
+          
+          <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-8">
+              ¿Listo para transformar tu outsourcing?
+            </h2>
+            <p className="text-xl text-primary-100 mb-12 max-w-3xl mx-auto">
+              Únete a cientos de empresas y profesionales que ya confían en nuestra plataforma para optimizar sus procesos de outsourcing con tecnología de vanguardia.
+            </p>
+            
+            <div className="flex flex-col sm:flex-row gap-6 justify-center">
+              <Link href="/signup?type=empresa">
+                <button className="group relative px-10 py-4 bg-white text-primary-700 rounded-2xl font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 text-lg">
+                  <span className="relative z-10">Registrarse como Empresa</span>
+                  <div className="absolute inset-0 bg-gray-50 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                </button>
+              </Link>
+              <Link href="/signup?type=profesional">
+                <button className="px-10 py-4 bg-transparent text-white border-2 border-white rounded-2xl font-semibold hover:bg-white hover:text-primary-700 transition-all duration-300 transform hover:-translate-y-1 text-lg">
+                  Registrarse como Profesional
+                </button>
+              </Link>
+            </div>
           </div>
-          <div className="bg-white dark:bg-gray-900 rounded-xl p-8 shadow flex flex-col items-center text-center">
-            <img src="/images/avatar2.png" alt="Carlos Méndez" className="rounded-full mb-4 w-16 h-16" />
-            <p className="text-gray-700 dark:text-gray-200 mb-4">“Ahora recibo mis pagos a tiempo y tengo contratos claros. La plataforma es muy fácil de usar y el soporte responde rápido.”</p>
-            <div className="font-bold text-blue-800 dark:text-white">Carlos Méndez</div>
-            <div className="text-sm text-gray-500 dark:text-gray-400">Freelancer Fullstack</div>
-          </div>
-        </div>
-      </section>
-      {/* PRICING */}
-      <section className="max-w-5xl mx-auto px-4 py-16">
-        <h2 className="text-2xl font-bold text-blue-900 dark:text-white mb-8 text-center">Planes y precios</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="rounded-xl p-8 shadow flex flex-col items-center text-center border-2 border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
-            <h3 className="text-xl font-bold mb-2 text-blue-800 dark:text-white">Starter</h3>
-            <div className="text-3xl font-extrabold mb-2">$0</div>
-            <div className="mb-4 text-gray-600 dark:text-gray-300">Hasta 3 contrataciones activas. Soporte básico.</div>
-            <ul className="mb-6 text-gray-700 dark:text-gray-200 text-left">
-              <li className="mb-1">• Gestión de talento</li>
-              <li className="mb-1">• Contratos electrónicos</li>
-              <li className="mb-1">• Panel básico</li>
-            </ul>
-            <button className="px-6 py-2 rounded-lg font-semibold shadow bg-white text-blue-700 border border-blue-600 hover:bg-blue-50 dark:bg-gray-900 dark:text-white dark:border-white">Comenzar gratis</button>
-          </div>
-          <div className="rounded-xl p-8 shadow flex flex-col items-center text-center border-2 border-blue-600 bg-blue-50 dark:bg-blue-900/30">
-            <h3 className="text-xl font-bold mb-2 text-blue-800 dark:text-white">Pro</h3>
-            <div className="text-3xl font-extrabold mb-2">$49/mes</div>
-            <div className="mb-4 text-gray-600 dark:text-gray-300">Hasta 50 contrataciones activas. Integraciones y reportes avanzados.</div>
-            <ul className="mb-6 text-gray-700 dark:text-gray-200 text-left">
-              <li className="mb-1">• Todo en Starter</li>
-              <li className="mb-1">• Integraciones externas</li>
-              <li className="mb-1">• Reportes exportables</li>
-              <li className="mb-1">• Soporte prioritario</li>
-            </ul>
-            <button className="px-6 py-2 rounded-lg font-semibold shadow bg-blue-600 text-white hover:bg-blue-700">Probar Pro</button>
-          </div>
-          <div className="rounded-xl p-8 shadow flex flex-col items-center text-center border-2 border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
-            <h3 className="text-xl font-bold mb-2 text-blue-800 dark:text-white">Enterprise</h3>
-            <div className="text-3xl font-extrabold mb-2">Custom</div>
-            <div className="mb-4 text-gray-600 dark:text-gray-300">Para empresas con operaciones globales y necesidades avanzadas.</div>
-            <ul className="mb-6 text-gray-700 dark:text-gray-200 text-left">
-              <li className="mb-1">• Todo en Pro</li>
-              <li className="mb-1">• Onboarding personalizado</li>
-              <li className="mb-1">• Soporte dedicado</li>
-              <li className="mb-1">• Cumplimiento fiscal avanzado</li>
-            </ul>
-            <button className="px-6 py-2 rounded-lg font-semibold shadow bg-white text-blue-700 border border-blue-600 hover:bg-blue-50 dark:bg-gray-900 dark:text-white dark:border-white">Contactar ventas</button>
-          </div>
-        </div>
-      </section>
-      {/* FAQ */}
-      <section className="max-w-4xl mx-auto px-4 py-16">
-        <h2 className="text-2xl font-bold text-blue-900 dark:text-white mb-8 text-center">Preguntas frecuentes</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="bg-white dark:bg-gray-900 rounded-xl p-6 shadow">
-            <div className="font-bold text-blue-700 dark:text-blue-300 mb-2">¿Puedo gestionar freelancers en cualquier país?</div>
-            <div className="text-gray-600 dark:text-gray-300">Sí, FreelaSaaS está diseñado para operaciones internacionales y cumple normativas locales.</div>
-          </div>
-          <div className="bg-white dark:bg-gray-900 rounded-xl p-6 shadow">
-            <div className="font-bold text-blue-700 dark:text-blue-300 mb-2">¿Cómo funciona la firma de contratos?</div>
-            <div className="text-gray-600 dark:text-gray-300">Puedes generar y firmar contratos electrónicos legalmente válidos desde la plataforma.</div>
-          </div>
-          <div className="bg-white dark:bg-gray-900 rounded-xl p-6 shadow">
-            <div className="font-bold text-blue-700 dark:text-blue-300 mb-2">¿Qué métodos de pago soportan?</div>
-            <div className="text-gray-600 dark:text-gray-300">Transferencias bancarias, PayPal, criptomonedas y más, según el país del freelancer.</div>
-          </div>
-          <div className="bg-white dark:bg-gray-900 rounded-xl p-6 shadow">
-            <div className="font-bold text-blue-700 dark:text-blue-300 mb-2">¿Puedo exportar reportes?</div>
-            <div className="text-gray-600 dark:text-gray-300">Sí, puedes exportar reportes en PDF y Excel desde el panel de control.</div>
-          </div>
-        </div>
-      </section>
+        </section>
+      </main>
+
       {/* FOOTER */}
-      <footer className="w-full py-8 text-center text-gray-500 dark:text-gray-400 text-sm border-t border-gray-200 dark:border-gray-800 mt-8">
-        &copy; {new Date().getFullYear()} FreelaSaaS. Todos los derechos reservados.
+      <footer className="bg-gray-900 text-white py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div>
+              <div className="flex items-center space-x-2 mb-4">
+                <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-accent-500 rounded-lg flex items-center justify-center">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                </div>
+                <span className="text-xl font-bold">FreelaSaaS</span>
+              </div>
+              <p className="text-gray-400 mb-4">
+                La plataforma líder en outsourcing inteligente que conecta empresas con profesionales talentosos.
+              </p>
+            </div>
+            
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Producto</h3>
+              <ul className="space-y-2 text-gray-400">
+                <li><Link href="/features" className="hover:text-white transition-colors">Características</Link></li>
+                <li><Link href="/pricing" className="hover:text-white transition-colors">Precios</Link></li>
+                <li><Link href="/integrations" className="hover:text-white transition-colors">Integraciones</Link></li>
+                <li><Link href="/api" className="hover:text-white transition-colors">API</Link></li>
+              </ul>
+            </div>
+            
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Empresa</h3>
+              <ul className="space-y-2 text-gray-400">
+                <li><Link href="/about" className="hover:text-white transition-colors">Acerca de</Link></li>
+                <li><Link href="/blog" className="hover:text-white transition-colors">Blog</Link></li>
+                <li><Link href="/careers" className="hover:text-white transition-colors">Carreras</Link></li>
+                <li><Link href="/contact" className="hover:text-white transition-colors">Contacto</Link></li>
+              </ul>
+            </div>
+            
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Soporte</h3>
+              <ul className="space-y-2 text-gray-400">
+                <li><Link href="/help" className="hover:text-white transition-colors">Centro de ayuda</Link></li>
+                <li><Link href="/docs" className="hover:text-white transition-colors">Documentación</Link></li>
+                <li><Link href="/status" className="hover:text-white transition-colors">Estado del servicio</Link></li>
+                <li><Link href="/security" className="hover:text-white transition-colors">Seguridad</Link></li>
+              </ul>
+            </div>
+          </div>
+          
+          <div className="border-t border-gray-800 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
+            <p className="text-gray-400 text-sm">
+              © 2024 FreelaSaaS. Todos los derechos reservados.
+            </p>
+            <div className="flex space-x-6 mt-4 md:mt-0">
+              <Link href="/privacy" className="text-gray-400 hover:text-white text-sm transition-colors">
+                Privacidad
+              </Link>
+              <Link href="/terms" className="text-gray-400 hover:text-white text-sm transition-colors">
+                Términos
+              </Link>
+              <Link href="/cookies" className="text-gray-400 hover:text-white text-sm transition-colors">
+                Cookies
+              </Link>
+            </div>
+          </div>
+        </div>
       </footer>
-    </main>
+    </div>
   );
 } 

@@ -1,38 +1,7 @@
 "use client";
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-
-export interface Payment {
-  id: string;
-  contractId: string;
-  freelancerId: string;
-  freelancerName: string;
-  amount: number;
-  currency: string;
-  type: 'salary' | 'milestone' | 'bonus' | 'reimbursement';
-  status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
-  paymentMethod: PaymentMethod;
-  scheduledDate: string;
-  processedDate?: string;
-  description: string;
-  invoice?: Invoice;
-  taxes: TaxDeduction[];
-  netAmount: number;
-  grossAmount: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface PaymentMethod {
-  id: string;
-  type: 'bank_transfer' | 'paypal' | 'crypto' | 'wire';
-  details: {
-    accountNumber?: string;
-    bankName?: string;
-    email?: string;
-    walletAddress?: string;
-  };
-  isDefault: boolean;
-}
+import { paymentService } from '@/services/supabase';
+import { Payment, PaymentMethod, Invoice, InvoiceItem } from '@/types';
 
 export interface TaxDeduction {
   name: string;
@@ -42,46 +11,29 @@ export interface TaxDeduction {
   jurisdiction: string;
 }
 
-export interface Invoice {
-  id: string;
-  number: string;
-  date: string;
-  dueDate: string;
-  items: InvoiceItem[];
-  total: number;
-  status: 'draft' | 'sent' | 'paid' | 'overdue';
-}
-
-export interface InvoiceItem {
-  description: string;
-  quantity: number;
-  rate: number;
-  amount: number;
-}
-
 export interface PayrollBatch {
   id: string;
   name: string;
-  scheduledDate: string;
+  scheduled_date: string;
   payments: string[]; // IDs de pagos
   status: 'scheduled' | 'processing' | 'completed' | 'failed';
-  totalAmount: number;
+  total_amount: number;
   currency: string;
-  createdAt: string;
-  processedAt?: string;
+  created_at: string;
+  processed_at?: string;
 }
 
 interface PaymentContextType {
   payments: Payment[];
   payrollBatches: PayrollBatch[];
-  createPayment: (payment: Omit<Payment, 'id' | 'createdAt' | 'updatedAt' | 'netAmount'>) => Promise<{ success: boolean; message: string; paymentId?: string }>;
+  createPayment: (payment: Omit<Payment, 'id' | 'created_at'>) => Promise<{ success: boolean; message: string; paymentId?: string }>;
   updatePaymentStatus: (id: string, status: Payment['status']) => Promise<{ success: boolean; message: string }>;
   processPayment: (id: string) => Promise<{ success: boolean; message: string }>;
-  createPayrollBatch: (batch: Omit<PayrollBatch, 'id' | 'createdAt' | 'status'>) => Promise<{ success: boolean; message: string }>;
+  createPayrollBatch: (batch: Omit<PayrollBatch, 'id' | 'created_at' | 'status'>) => Promise<{ success: boolean; message: string }>;
   processPayrollBatch: (batchId: string) => Promise<{ success: boolean; message: string }>;
   calculateTaxes: (amount: number, jurisdiction: string) => TaxDeduction[];
-  getPaymentsByFreelancer: (freelancerId: string) => Payment[];
-  getPaymentsByContract: (contractId: string) => Payment[];
+  getPaymentsByProfessional: (professionalId: string) => Promise<Payment[]>;
+  getPaymentsByContract: (contractId: string) => Promise<Payment[]>;
   generateInvoice: (paymentId: string) => Invoice;
   schedulePayment: (paymentId: string, date: string) => Promise<{ success: boolean; message: string }>;
 }
@@ -100,8 +52,8 @@ const TAX_CONFIGURATIONS: Record<string, TaxDeduction[]> = {
     { name: 'Seguridad Social', type: 'social_security', rate: 6.35, amount: 0, jurisdiction: 'ES' }
   ],
   'MX': [
-    { name: 'ISR', type: 'income_tax', rate: 30, amount: 0, jurisdiction: 'MX' },
-    { name: 'IMSS', type: 'social_security', rate: 3.15, amount: 0, jurisdiction: 'MX' }
+    { name: 'ISR', type: 'income_tax', rate: 15, amount: 0, jurisdiction: 'MX' },
+    { name: 'IMSS', type: 'social_security', rate: 5, amount: 0, jurisdiction: 'MX' }
   ]
 };
 
@@ -109,190 +61,152 @@ export const PaymentProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [payments, setPayments] = useState<Payment[]>([]);
   const [payrollBatches, setPayrollBatches] = useState<PayrollBatch[]>([]);
 
-  // Cargar datos del localStorage al iniciar
-  useEffect(() => {
-    const storedPayments = localStorage.getItem('payments');
-    const storedBatches = localStorage.getItem('payrollBatches');
-    
-    if (storedPayments) {
-      setPayments(JSON.parse(storedPayments));
-    } else {
-      // Crear pagos de ejemplo
-      const defaultPayments: Payment[] = [
-        {
-          id: '1',
-          contractId: '1',
-          freelancerId: '2',
-          freelancerName: 'Juan Pérez',
-          amount: 5000,
-          currency: 'USD',
-          type: 'milestone',
-          status: 'completed',
-          paymentMethod: {
-            id: '1',
-            type: 'bank_transfer',
-            details: {
-              accountNumber: '****1234',
-              bankName: 'Bank of America'
-            },
-            isDefault: true
-          },
-          scheduledDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-          processedDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-          description: 'Pago por completar hito: Diseño y Prototipo',
-          taxes: calculateTaxes(5000, 'US'),
-          netAmount: 0, // Se calculará
-          grossAmount: 5000,
-          createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-          updatedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
-        }
-      ];
-      
-      // Calcular montos netos
-      defaultPayments.forEach(payment => {
-        const totalTaxAmount = payment.taxes.reduce((sum, tax) => sum + tax.amount, 0);
-        payment.netAmount = payment.grossAmount - totalTaxAmount;
-      });
-      
-      localStorage.setItem('payments', JSON.stringify(defaultPayments));
-      setPayments(defaultPayments);
-    }
-
-    if (storedBatches) {
-      setPayrollBatches(JSON.parse(storedBatches));
-    }
-  }, []);
-
   function calculateTaxes(amount: number, jurisdiction: string): TaxDeduction[] {
-    const taxes = TAX_CONFIGURATIONS[jurisdiction] || TAX_CONFIGURATIONS['US'];
-    return taxes.map(tax => ({
+    const config = TAX_CONFIGURATIONS[jurisdiction] || TAX_CONFIGURATIONS['US'];
+    return config.map(tax => ({
       ...tax,
-      amount: amount * (tax.rate / 100)
+      amount: (amount * tax.rate) / 100
     }));
   }
 
-  const createPayment = async (paymentData: Omit<Payment, 'id' | 'createdAt' | 'updatedAt' | 'netAmount'>): Promise<{ success: boolean; message: string; paymentId?: string }> => {
-    const totalTaxAmount = paymentData.taxes.reduce((sum, tax) => sum + tax.amount, 0);
-    const netAmount = paymentData.grossAmount - totalTaxAmount;
-
-    const newPayment: Payment = {
-      ...paymentData,
-      id: Date.now().toString(),
-      netAmount,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-
-    const updatedPayments = [...payments, newPayment];
-    setPayments(updatedPayments);
-    localStorage.setItem('payments', JSON.stringify(updatedPayments));
-
-    // Simular notificación
-    console.log(`Notificación: Nuevo pago programado para ${paymentData.freelancerName}`);
-
-    return { 
-      success: true, 
-      message: 'Pago creado exitosamente', 
-      paymentId: newPayment.id 
-    };
+  const createPayment = async (paymentData: Omit<Payment, 'id' | 'created_at'>): Promise<{ success: boolean; message: string; paymentId?: string }> => {
+    try {
+      const paymentId = await paymentService.createPayment(paymentData);
+      
+      // Actualizar estado local
+      const newPayment: Payment = {
+        id: paymentId,
+        ...paymentData,
+        created_at: new Date().toISOString()
+      };
+      
+      setPayments(prev => [newPayment, ...prev]);
+      
+      return { success: true, message: 'Pago creado exitosamente', paymentId };
+    } catch (error) {
+      console.error('Error creating payment:', error);
+      return { success: false, message: 'Error al crear pago' };
+    }
   };
 
   const updatePaymentStatus = async (id: string, status: Payment['status']): Promise<{ success: boolean; message: string }> => {
-    const updatedPayments = payments.map(p => 
-      p.id === id 
-        ? { 
-            ...p, 
-            status,
-            processedDate: status === 'completed' ? new Date().toISOString() : p.processedDate,
-            updatedAt: new Date().toISOString()
-          }
-        : p
-    );
-    setPayments(updatedPayments);
-    localStorage.setItem('payments', JSON.stringify(updatedPayments));
-
-    // Simular notificación
-    const payment = payments.find(p => p.id === id);
-    if (payment) {
-      console.log(`Notificación: Estado de pago actualizado a ${status} para ${payment.freelancerName}`);
+    try {
+      await paymentService.updatePaymentStatus(id, status);
+      
+      // Actualizar estado local
+      setPayments(prev => prev.map(payment => 
+        payment.id === id 
+          ? { 
+              ...payment, 
+              status,
+              processed_date: status === 'completed' ? new Date().toISOString() : payment.processed_date
+            }
+          : payment
+      ));
+      
+      return { success: true, message: 'Estado del pago actualizado exitosamente' };
+    } catch (error) {
+      console.error('Error updating payment status:', error);
+      return { success: false, message: 'Error al actualizar estado del pago' };
     }
-
-    return { success: true, message: 'Estado de pago actualizado' };
   };
 
   const processPayment = async (id: string): Promise<{ success: boolean; message: string }> => {
-    const payment = payments.find(p => p.id === id);
-    if (!payment) {
-      return { success: false, message: 'Pago no encontrado' };
-    }
+    try {
+      const payment = payments.find(p => p.id === id);
+      if (!payment) {
+        return { success: false, message: 'Pago no encontrado' };
+      }
 
-    if (payment.status !== 'pending') {
-      return { success: false, message: 'El pago no está pendiente' };
-    }
-
-    // Simular procesamiento de pago
-    await updatePaymentStatus(id, 'processing');
-    
-    // Simular demora de procesamiento
-    setTimeout(async () => {
+      // Simular procesamiento de pago
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
       await updatePaymentStatus(id, 'completed');
-    }, 2000);
-
-    return { success: true, message: 'Pago en proceso' };
+      
+      return { success: true, message: 'Pago procesado exitosamente' };
+    } catch (error) {
+      console.error('Error processing payment:', error);
+      return { success: false, message: 'Error al procesar pago' };
+    }
   };
 
-  const createPayrollBatch = async (batchData: Omit<PayrollBatch, 'id' | 'createdAt' | 'status'>): Promise<{ success: boolean; message: string }> => {
-    const newBatch: PayrollBatch = {
-      ...batchData,
-      id: Date.now().toString(),
-      status: 'scheduled',
-      createdAt: new Date().toISOString()
-    };
-
-    const updatedBatches = [...payrollBatches, newBatch];
-    setPayrollBatches(updatedBatches);
-    localStorage.setItem('payrollBatches', JSON.stringify(updatedBatches));
-
-    return { success: true, message: 'Lote de nómina creado exitosamente' };
+  const createPayrollBatch = async (batchData: Omit<PayrollBatch, 'id' | 'created_at' | 'status'>): Promise<{ success: boolean; message: string }> => {
+    try {
+      const newBatch: PayrollBatch = {
+        id: Date.now().toString(),
+        ...batchData,
+        status: 'scheduled',
+        created_at: new Date().toISOString()
+      };
+      
+      setPayrollBatches(prev => [newBatch, ...prev]);
+      
+      return { success: true, message: 'Lote de nómina creado exitosamente' };
+    } catch (error) {
+      console.error('Error creating payroll batch:', error);
+      return { success: false, message: 'Error al crear lote de nómina' };
+    }
   };
 
   const processPayrollBatch = async (batchId: string): Promise<{ success: boolean; message: string }> => {
-    const batch = payrollBatches.find(b => b.id === batchId);
-    if (!batch) {
-      return { success: false, message: 'Lote no encontrado' };
+    try {
+      const batch = payrollBatches.find(b => b.id === batchId);
+      if (!batch) {
+        return { success: false, message: 'Lote de nómina no encontrado' };
+      }
+
+      // Actualizar estado del lote
+      setPayrollBatches(prev => prev.map(b => 
+        b.id === batchId 
+          ? { ...b, status: 'processing' }
+          : b
+      ));
+
+      // Simular procesamiento
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
+      // Procesar cada pago en el lote
+      for (const paymentId of batch.payments) {
+        await processPayment(paymentId);
+      }
+
+      // Marcar como completado
+      setPayrollBatches(prev => prev.map(b => 
+        b.id === batchId 
+          ? { 
+              ...b, 
+              status: 'completed',
+              processed_at: new Date().toISOString()
+            }
+          : b
+      ));
+
+      return { success: true, message: 'Lote de nómina procesado exitosamente' };
+    } catch (error) {
+      console.error('Error processing payroll batch:', error);
+      return { success: false, message: 'Error al procesar lote de nómina' };
     }
-
-    // Actualizar estado del lote
-    const updatedBatches = payrollBatches.map(b => 
-      b.id === batchId 
-        ? { ...b, status: 'processing' as const, processedAt: new Date().toISOString() }
-        : b
-    );
-    setPayrollBatches(updatedBatches);
-    localStorage.setItem('payrollBatches', JSON.stringify(updatedBatches));
-
-    // Procesar todos los pagos del lote
-    for (const paymentId of batch.payments) {
-      await processPayment(paymentId);
-    }
-
-    // Marcar lote como completado
-    const finalBatches = updatedBatches.map(b => 
-      b.id === batchId 
-        ? { ...b, status: 'completed' as const }
-        : b
-    );
-    setPayrollBatches(finalBatches);
-    localStorage.setItem('payrollBatches', JSON.stringify(finalBatches));
-
-    return { success: true, message: 'Lote de nómina procesado exitosamente' };
   };
 
-  const getPaymentsByFreelancer = (freelancerId: string) => 
-    payments.filter(p => p.freelancerId === freelancerId);
+  const getPaymentsByProfessional = async (professionalId: string): Promise<Payment[]> => {
+    try {
+      const professionalPayments = await paymentService.getPaymentsByProfessional(professionalId);
+      return professionalPayments;
+    } catch (error) {
+      console.error('Error getting payments by professional:', error);
+      return [];
+    }
+  };
 
-  const getPaymentsByContract = (contractId: string) => 
-    payments.filter(p => p.contractId === contractId);
+  const getPaymentsByContract = async (contractId: string): Promise<Payment[]> => {
+    try {
+      const contractPayments = await paymentService.getPaymentsByContract(contractId);
+      return contractPayments;
+    } catch (error) {
+      console.error('Error getting payments by contract:', error);
+      return [];
+    }
+  };
 
   const generateInvoice = (paymentId: string): Invoice => {
     const payment = payments.find(p => p.id === paymentId);
@@ -300,51 +214,66 @@ export const PaymentProvider: React.FC<{ children: ReactNode }> = ({ children })
       throw new Error('Pago no encontrado');
     }
 
-    return {
-      id: Date.now().toString(),
+    const invoice: Invoice = {
+      id: `INV-${paymentId}`,
       number: `INV-${Date.now()}`,
       date: new Date().toISOString(),
-      dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 días
       items: [
         {
           description: payment.description,
           quantity: 1,
-          rate: payment.grossAmount,
-          amount: payment.grossAmount
+          rate: payment.amount,
+          amount: payment.amount
         }
       ],
-      total: payment.grossAmount,
-      status: payment.status === 'completed' ? 'paid' : 'sent'
+      total: payment.amount,
+      status: 'draft'
     };
+
+    return invoice;
   };
 
   const schedulePayment = async (paymentId: string, date: string): Promise<{ success: boolean; message: string }> => {
-    const updatedPayments = payments.map(p => 
-      p.id === paymentId 
-        ? { ...p, scheduledDate: date, updatedAt: new Date().toISOString() }
-        : p
-    );
-    setPayments(updatedPayments);
-    localStorage.setItem('payments', JSON.stringify(updatedPayments));
+    try {
+      const payment = payments.find(p => p.id === paymentId);
+      if (!payment) {
+        return { success: false, message: 'Pago no encontrado' };
+      }
 
-    return { success: true, message: 'Pago programado exitosamente' };
+      await paymentService.updatePaymentStatus(paymentId, 'pending');
+      
+      // Actualizar estado local
+      setPayments(prev => prev.map(p => 
+        p.id === paymentId 
+          ? { ...p, scheduled_date: date, status: 'pending' }
+          : p
+      ));
+      
+      return { success: true, message: 'Pago programado exitosamente' };
+    } catch (error) {
+      console.error('Error scheduling payment:', error);
+      return { success: false, message: 'Error al programar pago' };
+    }
+  };
+
+  const value: PaymentContextType = {
+    payments,
+    payrollBatches,
+    createPayment,
+    updatePaymentStatus,
+    processPayment,
+    createPayrollBatch,
+    processPayrollBatch,
+    calculateTaxes,
+    getPaymentsByProfessional,
+    getPaymentsByContract,
+    generateInvoice,
+    schedulePayment
   };
 
   return (
-    <PaymentContext.Provider value={{
-      payments,
-      payrollBatches,
-      createPayment,
-      updatePaymentStatus,
-      processPayment,
-      createPayrollBatch,
-      processPayrollBatch,
-      calculateTaxes,
-      getPaymentsByFreelancer,
-      getPaymentsByContract,
-      generateInvoice,
-      schedulePayment
-    }}>
+    <PaymentContext.Provider value={value}>
       {children}
     </PaymentContext.Provider>
   );
@@ -352,8 +281,8 @@ export const PaymentProvider: React.FC<{ children: ReactNode }> = ({ children })
 
 export const usePayment = () => {
   const context = useContext(PaymentContext);
-  if (!context) {
-    throw new Error('usePayment debe ser usado dentro de PaymentProvider');
+  if (context === undefined) {
+    throw new Error('usePayment must be used within a PaymentProvider');
   }
   return context;
 }; 

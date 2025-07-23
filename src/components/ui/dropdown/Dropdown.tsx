@@ -43,7 +43,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
       let left = rect.left + window.scrollX;
       let top = rect.bottom + window.scrollY;
       let width = rect.width;
-      const menuWidth = 260;
+      const menuWidth = 280;
       const viewportWidth = window.innerWidth;
       if (left + menuWidth > viewportWidth - 8) {
         left = viewportWidth - menuWidth - 8;
@@ -69,7 +69,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
         top: '100%',
         zIndex: 9999
       }}
-      className={`rounded-xl border border-gray-200 bg-white shadow-theme-lg dark:border-gray-800 dark:bg-gray-dark ${className}`}
+      className={`rounded-2xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-800 ${className}`}
     >
       {children}
     </div>

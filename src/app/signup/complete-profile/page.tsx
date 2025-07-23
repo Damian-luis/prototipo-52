@@ -3,6 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft } from '@/icons';
 import Link from 'next/link';
+import { useAuth } from '@/context/AuthContext';
+import { userService } from '@/services/supabase';
 
 interface FreelancerProfile {
   firstName: string;
@@ -23,6 +25,7 @@ interface FreelancerProfile {
 
 export default function CompleteProfilePage() {
   const router = useRouter();
+  const { user, supabaseUser } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [skillInput, setSkillInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -32,7 +35,7 @@ export default function CompleteProfilePage() {
     lastName: '',
     email: '',
     password: '',
-    role: 'freelancer',
+    role: 'profesional',
     phone: '',
     country: '',
     city: '',
@@ -45,23 +48,34 @@ export default function CompleteProfilePage() {
   });
 
   useEffect(() => {
-    // Cargar datos iniciales del registro
-    const pendingData = localStorage.getItem('pendingRegistration');
-    if (!pendingData) {
-      router.push('/signup');
+    // Verificar que el usuario esté autenticado
+    if (!supabaseUser) {
+      router.push('/signin');
       return;
     }
     
-    const initial = JSON.parse(pendingData);
-    setProfile(prev => ({
-      ...prev,
-      firstName: initial.firstName,
-      lastName: initial.lastName,
-      email: initial.email,
-      password: initial.password,
-      role: initial.role
-    }));
-  }, [router]);
+    // Cargar datos del usuario desde Supabase
+    const loadUserData = async () => {
+      if (supabaseUser.id) {
+        try {
+          const userData = await userService.getUserById(supabaseUser.id);
+          if (userData) {
+            setProfile(prev => ({
+              ...prev,
+              firstName: userData.name?.split(' ')[0] || '',
+              lastName: userData.name?.split(' ').slice(1).join(' ') || '',
+              email: userData.email || '',
+              role: userData.role || 'profesional'
+            }));
+          }
+        } catch (error) {
+          console.error('Error loading user data:', error);
+        }
+      }
+    };
+    
+    loadUserData();
+  }, [supabaseUser, router]);
 
   const handleAddSkill = () => {
     if (skillInput.trim() && !profile.skills.includes(skillInput.trim())) {
@@ -109,58 +123,55 @@ export default function CompleteProfilePage() {
   };
 
   const handleSubmit = async () => {
+    if (!supabaseUser?.id) {
+      alert('Usuario no autenticado');
+      return;
+    }
+
     setIsSubmitting(true);
     
     try {
-      // Preparar datos completos del freelancer
-      const freelancerData = {
-        id: Date.now().toString(),
-        ...profile,
-        name: `${profile.firstName} ${profile.lastName}`.trim(),
-        avatarUrl: `https://ui-avatars.com/api/?name=${profile.firstName}+${profile.lastName}&background=random`,
-        bankAccounts: [],
-        paypal: {
-          email: profile.paypal.email,
-          isDefault: true
-        },
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        status: 'active',
-        registrationStep: 'completed'
+      // Actualizar perfil del usuario en Supabase
+      const updateData = {
+        phone: profile.phone,
+        country: profile.country,
+        city: profile.city,
+        bio: profile.bio,
+        hourly_rate: profile.hourlyRate,
+        skills: profile.skills,
+        languages: profile.languages,
+        paypal_email: profile.paypal.email,
+        crypto_wallets: profile.wallets,
+        profile_completed: true,
+        updated_at: new Date().toISOString()
       };
 
-      // Guardar en localStorage
-      const users = JSON.parse(localStorage.getItem('users') || '[]');
-      users.push(freelancerData);
-      localStorage.setItem('users', JSON.stringify(users));
+      const result = await userService.updateUser(supabaseUser.id, updateData);
       
-      // Guardar también como freelancers para el contexto
-      const freelancers = JSON.parse(localStorage.getItem('freelancers') || '[]');
-      freelancers.push(freelancerData);
-      localStorage.setItem('freelancers', JSON.stringify(freelancers));
-
-      // Guardar el usuario como currentUser para mantener la sesión activa
-      localStorage.setItem('currentUser', JSON.stringify(freelancerData));
-
-      // Enviar a webhook de n8n
+      // updateUser no retorna un objeto con success, solo void o error
+      // Si no hay error, la operación fue exitosa
+      
+      // Enviar a webhook de n8n para IA (solo para análisis)
       try {
-        await fetch('https://n8n.laconquista.group/webhook/freelancer-registration', {
+        const webhookUrl = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL || 'https://automation-biya.useteam.io/webhook/251e2883-46b7-4d3a-9fdf-97781cf6a116';
+        await fetch(webhookUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(freelancerData)
+          body: JSON.stringify({
+            type: 'profile_completed',
+            user_id: supabaseUser.id,
+            profile_data: updateData
+          })
         });
       } catch (error) {
-        console.error('Error enviando a webhook:', error);
+        console.error('Error enviando a webhook de IA:', error);
         // Continuar aunque falle el webhook
       }
-
-      // Limpiar registro pendiente
-      localStorage.removeItem('pendingRegistration');
       
-      // Redirigir directamente al dashboard de freelancer
-      window.location.href = '/freelancer';
+      // Redirigir al dashboard
+      router.push('/freelancer');
       
     } catch (error) {
       console.error('Error al completar registro:', error);

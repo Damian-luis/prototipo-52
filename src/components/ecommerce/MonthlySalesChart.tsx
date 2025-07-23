@@ -5,7 +5,6 @@ import { MoreDot } from "@/icons";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
 import { useState } from "react";
 import { Dropdown } from "../ui/dropdown/Dropdown";
-import { useMockData } from "@/context/MockDataContext";
 
 // Dynamically import the ReactApexChart component
 const ReactApexChart = dynamic(() => import("react-apexcharts"), {
@@ -13,7 +12,9 @@ const ReactApexChart = dynamic(() => import("react-apexcharts"), {
 });
 
 export default function MonthlySalesChart() {
-  const { monthlyHires } = useMockData();
+  // Datos mock locales para contrataciones mensuales
+  const monthlyHires = [45, 52, 38, 67, 89, 76, 94, 82, 71, 58, 63, 79];
+  
   const options: ApexOptions = {
     colors: ["#465fff"],
     chart: {

@@ -1,5 +1,7 @@
 "use client";
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { talentService } from '@/services/supabase';
+import { useAuth } from './AuthContext';
 
 export interface JobVacancy {
   id: string;
@@ -7,8 +9,8 @@ export interface JobVacancy {
   description: string;
   requirements: string[];
   skills: string[];
-  experienceRequired: number; // años
-  salaryRange: {
+  experience_required: number; // años
+  salary_range: {
     min: number;
     max: number;
     currency: string;
@@ -16,28 +18,28 @@ export interface JobVacancy {
   location: string;
   type: 'full-time' | 'part-time' | 'contract' | 'freelance';
   status: 'open' | 'closed' | 'draft';
-  createdAt: string;
-  createdBy: string;
-  applicationsCount: number;
+  created_at: string;
+  created_by: string;
+  applications_count: number;
 }
 
 export interface Application {
   id: string;
-  jobId: string;
-  freelancerId: string;
-  freelancerName: string;
-  freelancerEmail: string;
-  coverLetter: string;
+  job_id: string;
+  freelancer_id: string;
+  freelancer_name: string;
+  freelancer_email: string;
+  cover_letter: string;
   status: 'pending' | 'reviewing' | 'interview' | 'accepted' | 'rejected';
-  appliedAt: string;
-  evaluationScore?: number;
+  applied_at: string;
+  evaluation_score?: number;
   notes?: string;
 }
 
 export interface Evaluation {
   id: string;
-  freelancerId: string;
-  evaluatorId: string;
+  freelancer_id: string;
+  evaluator_id: string;
   type: 'initial' | 'periodic' | 'project';
   date: string;
   scores: {
@@ -47,23 +49,23 @@ export interface Evaluation {
     quality: number;
     teamwork: number;
   };
-  overallScore: number;
+  overall_score: number;
   comments: string;
   recommendations?: string;
 }
 
 export interface FreelancerProfile {
-  userId: string;
+  user_id: string;
   name: string;
   email: string;
   skills: string[];
   experience: number;
-  hourlyRate: number;
+  hourly_rate: number;
   availability: string;
   portfolio?: string;
   evaluations: Evaluation[];
-  completedProjects: number;
-  successRate: number;
+  completed_projects: number;
+  success_rate: number;
 }
 
 export interface User {
@@ -73,7 +75,7 @@ export interface User {
   role: string;
   skills?: string[];
   experience?: number;
-  hourlyRate?: number;
+  hourly_rate?: number;
   availability?: string;
   portfolio?: string;
 }
@@ -82,16 +84,20 @@ interface TalentContextType {
   vacancies: JobVacancy[];
   applications: Application[];
   evaluations: Evaluation[];
-  createVacancy: (vacancy: Omit<JobVacancy, 'id' | 'createdAt' | 'applicationsCount'>) => Promise<{ success: boolean; message: string }>;
+  loading: boolean;
+  createVacancy: (vacancy: Omit<JobVacancy, 'id' | 'created_at' | 'applications_count'>) => Promise<{ success: boolean; message: string }>;
   updateVacancy: (id: string, vacancy: Partial<JobVacancy>) => Promise<{ success: boolean; message: string }>;
   deleteVacancy: (id: string) => Promise<{ success: boolean; message: string }>;
-  applyToJob: (application: Omit<Application, 'id' | 'appliedAt' | 'status'>) => Promise<{ success: boolean; message: string }>;
+  applyToJob: (application: Omit<Application, 'id' | 'applied_at' | 'status'>) => Promise<{ success: boolean; message: string }>;
   updateApplicationStatus: (id: string, status: Application['status']) => Promise<{ success: boolean; message: string }>;
-  createEvaluation: (evaluation: Omit<Evaluation, 'id' | 'date' | 'overallScore'>) => Promise<{ success: boolean; message: string }>;
-  getRecommendedFreelancers: (jobId: string) => FreelancerProfile[];
+  createEvaluation: (evaluation: Omit<Evaluation, 'id' | 'date' | 'overall_score'>) => Promise<{ success: boolean; message: string }>;
+  getRecommendedFreelancers: (jobId: string) => Promise<FreelancerProfile[]>;
   getApplicationsByJob: (jobId: string) => Application[];
   getApplicationsByFreelancer: (freelancerId: string) => Application[];
   getEvaluationsByFreelancer: (freelancerId: string) => Evaluation[];
+  loadVacancies: () => Promise<void>;
+  loadApplications: () => Promise<void>;
+  loadEvaluations: () => Promise<void>;
 }
 
 const TalentContext = createContext<TalentContextType | undefined>(undefined);
@@ -100,239 +106,276 @@ export const TalentProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [vacancies, setVacancies] = useState<JobVacancy[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
+  const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
 
-  // Cargar datos del localStorage al iniciar
-  useEffect(() => {
-    const storedVacancies = localStorage.getItem('vacancies');
-    const storedApplications = localStorage.getItem('applications');
-    const storedEvaluations = localStorage.getItem('evaluations');
-
-    if (storedVacancies) {
-      setVacancies(JSON.parse(storedVacancies));
-    } else {
-      // Crear vacantes de ejemplo
-      const defaultVacancies: JobVacancy[] = [
-        {
-          id: '1',
-          title: 'Desarrollador Full Stack React/Node',
-          description: 'Buscamos desarrollador con experiencia en React y Node.js para proyecto a largo plazo.',
-          requirements: ['3+ años de experiencia', 'Inglés intermedio', 'Disponibilidad inmediata'],
-          skills: ['React', 'Node.js', 'TypeScript', 'MongoDB', 'AWS'],
-          experienceRequired: 3,
-          salaryRange: { min: 3000, max: 5000, currency: 'USD' },
-          location: 'Remoto',
-          type: 'contract',
-          status: 'open',
-          createdAt: new Date().toISOString(),
-          createdBy: '1',
-          applicationsCount: 0
-        },
-        {
-          id: '2',
-          title: 'Diseñador UX/UI Senior',
-          description: 'Necesitamos diseñador con experiencia en productos SaaS y mobile.',
-          requirements: ['5+ años de experiencia', 'Portfolio actualizado', 'Conocimiento en Figma'],
-          skills: ['Figma', 'Adobe XD', 'UI Design', 'UX Research', 'Prototyping'],
-          experienceRequired: 5,
-          salaryRange: { min: 2500, max: 4000, currency: 'USD' },
-          location: 'Remoto',
-          type: 'freelance',
-          status: 'open',
-          createdAt: new Date().toISOString(),
-          createdBy: '1',
-          applicationsCount: 0
-        }
-      ];
-      localStorage.setItem('vacancies', JSON.stringify(defaultVacancies));
-      setVacancies(defaultVacancies);
+  // Cargar vacantes al iniciar
+  const loadVacancies = async () => {
+    try {
+      setLoading(true);
+      const result = await talentService.getAllVacancies();
+      
+      if (result.success && result.data) {
+        setVacancies(result.data);
+      } else {
+        console.warn('No se pudieron cargar las vacantes:', result.error);
+        setVacancies([]);
+      }
+    } catch (error) {
+      console.error('Error loading vacancies:', error);
+      setVacancies([]);
+    } finally {
+      setLoading(false);
     }
-
-    if (storedApplications) {
-      setApplications(JSON.parse(storedApplications));
-    }
-
-    if (storedEvaluations) {
-      setEvaluations(JSON.parse(storedEvaluations));
-    }
-  }, []);
-
-  const createVacancy = async (vacancy: Omit<JobVacancy, 'id' | 'createdAt' | 'applicationsCount'>): Promise<{ success: boolean; message: string }> => {
-    const newVacancy: JobVacancy = {
-      ...vacancy,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-      applicationsCount: 0
-    };
-
-    const updatedVacancies = [...vacancies, newVacancy];
-    setVacancies(updatedVacancies);
-    localStorage.setItem('vacancies', JSON.stringify(updatedVacancies));
-
-    return { success: true, message: 'Vacante creada exitosamente' };
   };
 
-  const updateVacancy = async (id: string, vacancy: Partial<JobVacancy>): Promise<{ success: boolean; message: string }> => {
-    const updatedVacancies = vacancies.map(v => v.id === id ? { ...v, ...vacancy } : v);
-    setVacancies(updatedVacancies);
-    localStorage.setItem('vacancies', JSON.stringify(updatedVacancies));
+  // Cargar aplicaciones al iniciar
+  const loadApplications = async () => {
+    try {
+      setLoading(true);
+      let result;
+      
+      if (user?.role === 'empresa') {
+        // Para empresas, cargar aplicaciones de sus vacantes
+        const companyVacancies = await talentService.getVacanciesByCompany(user.id);
+        if (companyVacancies.success && companyVacancies.data) {
+          const allApplications = [];
+          for (const vacancy of companyVacancies.data) {
+            const applicationsResult = await talentService.getApplicationsByJob(vacancy.id);
+            if (applicationsResult.success && applicationsResult.data) {
+              allApplications.push(...applicationsResult.data);
+            }
+          }
+          setApplications(allApplications);
+        } else {
+          setApplications([]);
+        }
+      } else {
+        // Para freelancers, cargar sus aplicaciones
+        result = await talentService.getApplicationsByFreelancer(user?.id || '');
+        if (result.success && result.data) {
+          setApplications(result.data);
+        } else {
+          console.warn('No se pudieron cargar las aplicaciones:', result.error);
+          setApplications([]);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading applications:', error);
+      setApplications([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    return { success: true, message: 'Vacante actualizada exitosamente' };
+  // Cargar evaluaciones al iniciar
+  const loadEvaluations = async () => {
+    try {
+      setLoading(true);
+      const result = await talentService.getEvaluationsByFreelancer(user?.id || '');
+      
+      if (result.success && result.data) {
+        setEvaluations(result.data);
+      } else {
+        console.warn('No se pudieron cargar las evaluaciones:', result.error);
+        setEvaluations([]);
+      }
+    } catch (error) {
+      console.error('Error loading evaluations:', error);
+      setEvaluations([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Cargar datos cuando el usuario cambie
+  useEffect(() => {
+    if (user?.id) {
+      loadVacancies();
+      loadApplications();
+      loadEvaluations();
+    } else {
+      // Limpiar datos cuando no hay usuario
+      setVacancies([]);
+      setApplications([]);
+      setEvaluations([]);
+    }
+  }, [user?.id]);
+
+  const createVacancy = async (vacancyData: Omit<JobVacancy, 'id' | 'created_at' | 'applications_count'>): Promise<{ success: boolean; message: string }> => {
+    try {
+      const result = await talentService.createVacancy({
+        ...vacancyData,
+        created_by: user?.id || ''
+      });
+      
+      if (result.success && result.data) {
+        setVacancies(prev => [result.data, ...prev]);
+        return { success: true, message: 'Vacante creada exitosamente' };
+      } else {
+        return { success: false, message: 'Error al crear la vacante' };
+      }
+    } catch (error) {
+      console.error('Error creating vacancy:', error);
+      return { success: false, message: 'Error al crear la vacante' };
+    }
+  };
+
+  const updateVacancy = async (id: string, vacancyData: Partial<JobVacancy>): Promise<{ success: boolean; message: string }> => {
+    try {
+      const result = await talentService.updateVacancy(id, vacancyData);
+      
+      if (result.success && result.data) {
+        setVacancies(prev => prev.map(vacancy => 
+          vacancy.id === id ? { ...vacancy, ...result.data } : vacancy
+        ));
+        return { success: true, message: 'Vacante actualizada exitosamente' };
+      } else {
+        return { success: false, message: 'Error al actualizar la vacante' };
+      }
+    } catch (error) {
+      console.error('Error updating vacancy:', error);
+      return { success: false, message: 'Error al actualizar la vacante' };
+    }
   };
 
   const deleteVacancy = async (id: string): Promise<{ success: boolean; message: string }> => {
-    const updatedVacancies = vacancies.filter(v => v.id !== id);
-    setVacancies(updatedVacancies);
-    localStorage.setItem('vacancies', JSON.stringify(updatedVacancies));
-
-    return { success: true, message: 'Vacante eliminada exitosamente' };
+    try {
+      const result = await talentService.deleteVacancy(id);
+      
+      if (result.success) {
+        setVacancies(prev => prev.filter(vacancy => vacancy.id !== id));
+        return { success: true, message: 'Vacante eliminada exitosamente' };
+      } else {
+        return { success: false, message: 'Error al eliminar la vacante' };
+      }
+    } catch (error) {
+      console.error('Error deleting vacancy:', error);
+      return { success: false, message: 'Error al eliminar la vacante' };
+    }
   };
 
-  const applyToJob = async (application: Omit<Application, 'id' | 'appliedAt' | 'status'>): Promise<{ success: boolean; message: string }> => {
-    // Verificar si ya aplicó
-    const existingApplication = applications.find(
-      a => a.jobId === application.jobId && a.freelancerId === application.freelancerId
-    );
-
-    if (existingApplication) {
-      return { success: false, message: 'Ya has aplicado a esta vacante' };
+  const applyToJob = async (applicationData: Omit<Application, 'id' | 'applied_at' | 'status'>): Promise<{ success: boolean; message: string }> => {
+    try {
+      const result = await talentService.applyToJob({
+        ...applicationData,
+        freelancer_id: user?.id || '',
+        freelancer_name: user?.name || '',
+        freelancer_email: user?.email || ''
+      });
+      
+      if (result.success && result.data) {
+        setApplications(prev => [result.data, ...prev]);
+        return { success: true, message: 'Aplicación enviada exitosamente' };
+      } else {
+        return { success: false, message: 'Error al enviar la aplicación' };
+      }
+    } catch (error) {
+      console.error('Error applying to job:', error);
+      return { success: false, message: 'Error al enviar la aplicación' };
     }
-
-    const newApplication: Application = {
-      ...application,
-      id: Date.now().toString(),
-      appliedAt: new Date().toISOString(),
-      status: 'pending'
-    };
-
-    const updatedApplications = [...applications, newApplication];
-    setApplications(updatedApplications);
-    localStorage.setItem('applications', JSON.stringify(updatedApplications));
-
-    // Actualizar contador de aplicaciones en la vacante
-    const updatedVacancies = vacancies.map(v => 
-      v.id === application.jobId 
-        ? { ...v, applicationsCount: v.applicationsCount + 1 }
-        : v
-    );
-    setVacancies(updatedVacancies);
-    localStorage.setItem('vacancies', JSON.stringify(updatedVacancies));
-
-    return { success: true, message: 'Aplicación enviada exitosamente' };
   };
 
   const updateApplicationStatus = async (id: string, status: Application['status']): Promise<{ success: boolean; message: string }> => {
-    const updatedApplications = applications.map(a => 
-      a.id === id ? { ...a, status } : a
-    );
-    setApplications(updatedApplications);
-    localStorage.setItem('applications', JSON.stringify(updatedApplications));
-
-    return { success: true, message: 'Estado de aplicación actualizado' };
-  };
-
-  const createEvaluation = async (evaluation: Omit<Evaluation, 'id' | 'date' | 'overallScore'>): Promise<{ success: boolean; message: string }> => {
-    const scores = evaluation.scores;
-    const overallScore = (scores.technical + scores.communication + scores.punctuality + scores.quality + scores.teamwork) / 5;
-
-    const newEvaluation: Evaluation = {
-      ...evaluation,
-      id: Date.now().toString(),
-      date: new Date().toISOString(),
-      overallScore
-    };
-
-    const updatedEvaluations = [...evaluations, newEvaluation];
-    setEvaluations(updatedEvaluations);
-    localStorage.setItem('evaluations', JSON.stringify(updatedEvaluations));
-
-    return { success: true, message: 'Evaluación creada exitosamente' };
-  };
-
-  // Algoritmo de similitud de coseno para recomendaciones
-  const calculateCosineSimilarity = (skills1: string[], skills2: string[]): number => {
-    const allSkills = [...new Set([...skills1, ...skills2])];
-    const vector1 = allSkills.map(skill => skills1.includes(skill) ? 1 : 0);
-    const vector2 = allSkills.map(skill => skills2.includes(skill) ? 1 : 0);
-
-    let dotProduct = 0;
-    let magnitude1 = 0;
-    let magnitude2 = 0;
-
-    for (let i = 0; i < vector1.length; i++) {
-      dotProduct += vector1[i] * vector2[i];
-      magnitude1 += vector1[i] * vector1[i];
-      magnitude2 += vector2[i] * vector2[i];
+    try {
+      const result = await talentService.updateApplicationStatus(id, status);
+      
+      if (result.success && result.data) {
+        setApplications(prev => prev.map(application => 
+          application.id === id ? { ...application, status } : application
+        ));
+        return { success: true, message: 'Estado de aplicación actualizado' };
+      } else {
+        return { success: false, message: 'Error al actualizar el estado' };
+      }
+    } catch (error) {
+      console.error('Error updating application status:', error);
+      return { success: false, message: 'Error al actualizar el estado' };
     }
-
-    magnitude1 = Math.sqrt(magnitude1);
-    magnitude2 = Math.sqrt(magnitude2);
-
-    if (magnitude1 === 0 || magnitude2 === 0) return 0;
-    return dotProduct / (magnitude1 * magnitude2);
   };
 
-  const getRecommendedFreelancers = (jobId: string): FreelancerProfile[] => {
-    const job = vacancies.find(v => v.id === jobId);
-    if (!job) return [];
+  const createEvaluation = async (evaluationData: Omit<Evaluation, 'id' | 'date' | 'overall_score'>): Promise<{ success: boolean; message: string }> => {
+    try {
+      // Calcular puntuación general
+      const scores = evaluationData.scores;
+      const overallScore = Math.round(
+        (scores.technical + scores.communication + scores.punctuality + scores.quality + scores.teamwork) / 5
+      );
 
-    // Obtener usuarios freelancers del localStorage
-    const users: User[] = JSON.parse(localStorage.getItem('users') || '[]');
-    const freelancers = users.filter((u) => u.role === 'freelancer');
+      const result = await talentService.createEvaluation({
+        ...evaluationData,
+        evaluator_id: user?.id || '',
+        overall_score: overallScore
+      });
+      
+      if (result.success && result.data) {
+        setEvaluations(prev => [result.data, ...prev]);
+        return { success: true, message: 'Evaluación creada exitosamente' };
+      } else {
+        return { success: false, message: 'Error al crear la evaluación' };
+      }
+    } catch (error) {
+      console.error('Error creating evaluation:', error);
+      return { success: false, message: 'Error al crear la evaluación' };
+    }
+  };
 
-    // Calcular similitud y ordenar
-    const recommendations = freelancers.map((freelancer) => {
-      const similarity = calculateCosineSimilarity(job.skills, freelancer.skills || []);
-      const freelancerEvaluations = evaluations.filter(e => e.freelancerId === freelancer.id);
-      const avgScore = freelancerEvaluations.length > 0
-        ? freelancerEvaluations.reduce((sum, e) => sum + e.overallScore, 0) / freelancerEvaluations.length
-        : 0;
-
-      return {
-        userId: freelancer.id,
-        name: freelancer.name,
-        email: freelancer.email,
-        skills: freelancer.skills || [],
-        experience: freelancer.experience || 0,
-        hourlyRate: freelancer.hourlyRate || 0,
-        availability: freelancer.availability || 'unavailable',
-        portfolio: freelancer.portfolio,
-        evaluations: freelancerEvaluations,
-        completedProjects: Math.floor(Math.random() * 20), // Simulado
-        successRate: 85 + Math.floor(Math.random() * 15), // Simulado 85-100%
-        similarity
-      };
-    });
-
-    return recommendations
-      .sort((a, b) => b.similarity - a.similarity)
-      .slice(0, 5); // Top 5 recomendaciones
+  const getRecommendedFreelancers = async (jobId: string): Promise<FreelancerProfile[]> => {
+    try {
+      const result = await talentService.getRecommendedFreelancers(jobId);
+      if (result.success && result.data) {
+        return result.data.map(user => ({
+          user_id: user.id,
+          name: user.name,
+          email: user.email,
+          skills: user.skills || [],
+          experience: user.experience || 0,
+          hourly_rate: user.hourly_rate || 0,
+          availability: user.availability || '',
+          portfolio: user.portfolio,
+          evaluations: [],
+          completed_projects: 0,
+          success_rate: 0
+        }));
+      }
+      return [];
+    } catch (error) {
+      console.error('Error getting recommended freelancers:', error);
+      return [];
+    }
   };
 
   const getApplicationsByJob = (jobId: string) => 
-    applications.filter(a => a.jobId === jobId);
+    applications.filter(a => a.job_id === jobId);
 
   const getApplicationsByFreelancer = (freelancerId: string) => 
-    applications.filter(a => a.freelancerId === freelancerId);
+    applications.filter(a => a.freelancer_id === freelancerId);
 
   const getEvaluationsByFreelancer = (freelancerId: string) => 
-    evaluations.filter(e => e.freelancerId === freelancerId);
+    evaluations.filter(e => e.freelancer_id === freelancerId);
+
+  const value: TalentContextType = {
+    vacancies,
+    applications,
+    evaluations,
+    loading,
+    createVacancy,
+    updateVacancy,
+    deleteVacancy,
+    applyToJob,
+    updateApplicationStatus,
+    createEvaluation,
+    getRecommendedFreelancers,
+    getApplicationsByJob,
+    getApplicationsByFreelancer,
+    getEvaluationsByFreelancer,
+    loadVacancies,
+    loadApplications,
+    loadEvaluations
+  };
 
   return (
-    <TalentContext.Provider value={{
-      vacancies,
-      applications,
-      evaluations,
-      createVacancy,
-      updateVacancy,
-      deleteVacancy,
-      applyToJob,
-      updateApplicationStatus,
-      createEvaluation,
-      getRecommendedFreelancers,
-      getApplicationsByJob,
-      getApplicationsByFreelancer,
-      getEvaluationsByFreelancer
-    }}>
+    <TalentContext.Provider value={value}>
       {children}
     </TalentContext.Provider>
   );
@@ -340,8 +383,8 @@ export const TalentProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
 export const useTalent = () => {
   const context = useContext(TalentContext);
-  if (!context) {
-    throw new Error('useTalent debe ser usado dentro de TalentProvider');
+  if (context === undefined) {
+    throw new Error('useTalent must be used within a TalentProvider');
   }
   return context;
 }; 

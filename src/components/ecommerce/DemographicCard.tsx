@@ -6,10 +6,17 @@ import { useState } from "react";
 import { MoreDot } from "@/icons";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
-import { useMockData } from "@/context/MockDataContext";
 
 export default function DemographicCard() {
-  const { freelancersByCountry } = useMockData();
+  // Datos mock locales para freelancers por país
+  const freelancersByCountry = [
+    { country: "Argentina", value: 1250 },
+    { country: "México", value: 890 },
+    { country: "Colombia", value: 720 },
+    { country: "Brasil", value: 650 },
+    { country: "Chile", value: 480 },
+  ];
+
   const paises = freelancersByCountry.slice(0, 2); // Solo muestro dos para el ejemplo visual
   const [isOpen, setIsOpen] = useState(false);
 

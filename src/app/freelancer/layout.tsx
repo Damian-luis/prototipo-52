@@ -14,7 +14,7 @@ export default function FreelancerLayout({
   const sidebarWidth = isExpanded || isHovered || isMobileOpen ? "ml-[290px]" : "ml-[90px]";
 
   return (
-    <AuthGuard requiredRole="freelancer">
+    <AuthGuard requiredRole="profesional">
       <FreelancerSidebar />
       <div className={`relative flex flex-1 flex-col overflow-y-auto overflow-x-hidden transition-all duration-300 ${sidebarWidth}`}>
         <AppHeader />

@@ -1,288 +1,231 @@
 "use client";
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-
-export type UserRole = 'admin' | 'freelancer';
-
-export interface User {
-  id: string;
-  email: string;
-  password: string;
-  name: string;
-  role: UserRole;
-  profilePicture?: string;
-  phone?: string;
-  address?: string;
-  city?: string;
-  postalCode?: string;
-  taxId?: string;
-  skills?: string[];
-  hourlyRate?: number;
-  availability?: 'available' | 'busy' | 'unavailable';
-  bio?: string;
-  portfolio?: string;
-  bankAccounts?: BankAccount[];
-  documents?: Document[];
-  createdAt: string;
-  lastLogin?: string;
-}
-
-export interface BankAccount {
-  id: string;
-  bankName: string;
-  accountNumber: string;
-  accountType: 'checking' | 'savings';
-  currency: string;
-  isDefault: boolean;
-}
-
-export interface Document {
-  id: string;
-  name: string;
-  type: 'id' | 'tax' | 'certification' | 'other';
-  url: string;
-  uploadDate: string;
-}
+import { supabase } from '@/lib/supabase';
+import { userService } from '@/services/supabase';
+import { User, UserRole } from '@/types';
+import { User as SupabaseUser } from '@supabase/supabase-js';
 
 interface AuthContextType {
   user: User | null;
-  users: User[];
+  supabaseUser: SupabaseUser | null;
   isAuthenticated: boolean;
   loading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; message: string }>;
-  logout: () => void;
-  register: (userData: Partial<User>) => Promise<{ success: boolean; message: string }>;
+  logout: () => Promise<void>;
+  register: (userData: Partial<User> & { password: string }) => Promise<{ success: boolean; message: string }>;
   updateProfile: (userData: Partial<User>) => Promise<{ success: boolean; message: string }>;
   resetPassword: (email: string) => Promise<{ success: boolean; message: string }>;
-  addBankAccount: (bankAccount: Omit<BankAccount, 'id'>) => Promise<{ success: boolean; message: string }>;
-  addDocument: (document: Omit<Document, 'id' | 'uploadDate'>) => Promise<{ success: boolean; message: string }>;
-  getAllUsers: () => User[];
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [users, setUsers] = useState<User[]>([]);
+  const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Cargar usuarios del localStorage al iniciar
+  // Escuchar cambios en el estado de autenticación de Supabase
   useEffect(() => {
-    const storedUsers = localStorage.getItem('users');
-    const currentUser = localStorage.getItem('currentUser');
-    let usersArr: User[] = [];
-    if (storedUsers) {
-      usersArr = JSON.parse(storedUsers);
-      // Migrar usuarios con _id a id
-      usersArr = usersArr.map(u => {
-        const anyUser = u as any;
-        if (!u.id && anyUser['_id']) {
-          u.id = anyUser['_id'];
-          delete anyUser['_id'];
-        }
-        return u;
-      });
-      // Verificar si existe el admin
-      const adminExists = usersArr.some(u => u.role === 'admin' && u.email === 'admin@freelasaas.com');
-      if (!adminExists) {
-        usersArr.unshift({
-          id: '1',
-          email: 'admin@freelasaas.com',
-          password: 'admin123',
-          name: 'Administrador',
-          role: 'admin',
-          createdAt: new Date().toISOString(),
-        } as User);
-        localStorage.setItem('users', JSON.stringify(usersArr));
-      }
-      // Guardar migración si hubo cambios
-      localStorage.setItem('users', JSON.stringify(usersArr));
-      setUsers(usersArr);
-    } else {
-      // Crear usuarios por defecto
-      const defaultUsers: User[] = [
-        {
-          id: '1',
-          email: 'admin@freelasaas.com',
-          password: 'admin123',
-          name: 'Administrador',
-          role: 'admin',
-          createdAt: new Date().toISOString(),
-        },
-        {
-          id: '2',
-          email: 'freelancer@example.com',
-          password: 'freelancer123',
-          name: 'Juan Pérez',
-          role: 'freelancer',
-          skills: ['React', 'Node.js', 'TypeScript'],
-          hourlyRate: 50,
-          availability: 'available',
-          bio: 'Desarrollador Full Stack con 5 años de experiencia',
-          createdAt: new Date().toISOString(),
-        }
-      ];
-      localStorage.setItem('users', JSON.stringify(defaultUsers));
-      setUsers(defaultUsers);
-    }
-
-    if (currentUser) {
-      try {
-        let userData = JSON.parse(currentUser);
-        // Migrar currentUser con _id a id
-        const anyUserData = userData as any;
-        if (!userData.id && anyUserData['_id']) {
-          userData.id = anyUserData['_id'];
-          delete anyUserData['_id'];
-          localStorage.setItem('currentUser', JSON.stringify(userData));
-        }
-        // Validar que el usuario tiene los campos mínimos
-        if (userData && userData.id && userData.email && userData.role) {
-          setUser(userData);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      setSupabaseUser(session?.user ?? null);
+      
+      if (session?.user) {
+        try {
+          // Obtener datos del usuario desde Supabase
+          const userData = await userService.getUserById(session.user.id);
+          
+          if (userData) {
+            setUser(userData);
+            setIsAuthenticated(true);
+          } else {
+            // Si no existe en la base de datos, crear usuario desde Auth
+            try {
+              const newUser = await userService.createUserFromAuth(session.user);
+              setUser(newUser);
+              setIsAuthenticated(true);
+            } catch (createError) {
+              console.error('Error creating user from Auth:', createError);
+              // Si falla la creación, crear un usuario temporal
+              const tempUser: User = {
+                id: session.user.id,
+                email: session.user.email || '',
+                name: session.user.user_metadata?.name || 'Usuario',
+                role: session.user.user_metadata?.role || 'profesional',
+                is_active: true,
+                created_at: new Date().toISOString(),
+              };
+              setUser(tempUser);
+              setIsAuthenticated(true);
+            }
+          }
+        } catch (error) {
+          console.error('Error getting user data:', error);
+          // Crear usuario temporal en caso de error
+          const tempUser: User = {
+            id: session.user.id,
+            email: session.user.email || '',
+            name: session.user.user_metadata?.name || 'Usuario',
+            role: session.user.user_metadata?.role || 'profesional',
+            is_active: true,
+            created_at: new Date().toISOString(),
+          };
+          setUser(tempUser);
           setIsAuthenticated(true);
-        } else {
-          // Si el objeto está malformado, limpiar y no setear usuario
-          localStorage.removeItem('currentUser');
-          setUser(null);
-          setIsAuthenticated(false);
         }
-      } catch (e) {
-        // Si hay error de parseo, limpiar y no setear usuario
-        localStorage.removeItem('currentUser');
+      } else {
         setUser(null);
         setIsAuthenticated(false);
       }
-    }
-    setLoading(false);
+      
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const login = async (email: string, password: string): Promise<{ success: boolean; message: string }> => {
-    const foundUser = users.find(u => u.email === email && u.password === password);
-    
-    if (foundUser) {
-      const updatedUser = { ...foundUser, lastLogin: new Date().toISOString() };
-      setUser(updatedUser);
-      setIsAuthenticated(true);
-      localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+    try {
+      setLoading(true);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
       
-      // Actualizar último login en la lista de usuarios
-      const updatedUsers = users.map(u => u.id === foundUser.id ? updatedUser : u);
-      setUsers(updatedUsers);
-      localStorage.setItem('users', JSON.stringify(updatedUsers));
+      if (error) throw error;
       
-      return { success: true, message: 'Login exitoso' };
+      // Los datos del usuario se cargarán automáticamente en el useEffect
+      return { success: true, message: 'Inicio de sesión exitoso' };
+    } catch (error: any) {
+      console.error('Login error:', error);
+      let message = 'Error al iniciar sesión';
+      
+      if (error.message?.includes('Invalid login credentials')) {
+        message = 'Credenciales inválidas';
+      } else if (error.message?.includes('Email not confirmed')) {
+        message = 'Email no confirmado';
+      } else if (error.message?.includes('Too many requests')) {
+        message = 'Demasiados intentos, inténtalo más tarde';
+      }
+      
+      return { success: false, message };
+    } finally {
+      setLoading(false);
     }
-    
-    return { success: false, message: 'Credenciales inválidas' };
   };
 
-  const logout = () => {
-    setUser(null);
-    setIsAuthenticated(false);
-    localStorage.removeItem('currentUser');
+  const logout = async (): Promise<void> => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      setUser(null);
+      setIsAuthenticated(false);
+    } catch (error) {
+      console.error('Logout error:', error);
+      throw error;
+    }
   };
 
-  const register = async (userData: Partial<User>): Promise<{ success: boolean; message: string }> => {
-    const existingUser = users.find(u => u.email === userData.email);
-    
-    if (existingUser) {
-      return { success: false, message: 'El usuario ya existe' };
+  const register = async (userData: Partial<User> & { password: string }): Promise<{ success: boolean; message: string }> => {
+    try {
+      setLoading(true);
+      const { password, ...userInfo } = userData;
+      
+      // Crear usuario en Supabase Auth
+      const { data, error } = await supabase.auth.signUp({
+        email: userInfo.email!,
+        password: password,
+        options: {
+          data: {
+            name: userInfo.name,
+            role: userInfo.role || 'profesional'
+          }
+        }
+      });
+      
+      if (error) throw error;
+      
+      if (data.user) {
+        // Crear documento en la base de datos
+        const newUser: Omit<User, 'id'> = {
+          email: userInfo.email!,
+          name: userInfo.name!,
+          role: userInfo.role || 'profesional',
+          is_active: true,
+          created_at: new Date().toISOString(),
+          ...userInfo
+        };
+        
+        await userService.createUser(newUser);
+      }
+      
+      return { success: true, message: 'Usuario registrado exitosamente' };
+    } catch (error: any) {
+      console.error('Register error:', error);
+      let message = 'Error al registrar usuario';
+      
+      if (error.message?.includes('User already registered')) {
+        message = 'El usuario ya está registrado';
+      } else if (error.message?.includes('Password should be at least')) {
+        message = 'La contraseña debe tener al menos 6 caracteres';
+      } else if (error.message?.includes('Invalid email')) {
+        message = 'Email inválido';
+      }
+      
+      return { success: false, message };
+    } finally {
+      setLoading(false);
     }
-
-    const newUser: User = {
-      id: Date.now().toString(),
-      email: userData.email!,
-      password: userData.password!,
-      name: userData.name!,
-      role: userData.role || 'freelancer',
-      createdAt: new Date().toISOString(),
-      bankAccounts: [],
-      documents: [],
-      ...userData
-    };
-
-    const updatedUsers = [...users, newUser];
-    setUsers(updatedUsers);
-    localStorage.setItem('users', JSON.stringify(updatedUsers));
-
-    return { success: true, message: 'Usuario registrado exitosamente' };
   };
 
   const updateProfile = async (userData: Partial<User>): Promise<{ success: boolean; message: string }> => {
-    if (!user) {
-      return { success: false, message: 'No hay usuario autenticado' };
+    try {
+      if (!user?.id) {
+        return { success: false, message: 'Usuario no autenticado' };
+      }
+      
+      await userService.updateUser(user.id, userData);
+      
+      // Actualizar estado local
+      setUser(prev => prev ? { ...prev, ...userData } : null);
+      
+      return { success: true, message: 'Perfil actualizado exitosamente' };
+    } catch (error) {
+      console.error('Update profile error:', error);
+      return { success: false, message: 'Error al actualizar perfil' };
     }
-
-    const updatedUser = { ...user, ...userData };
-    setUser(updatedUser);
-    
-    const updatedUsers = users.map(u => u.id === user.id ? updatedUser : u);
-    setUsers(updatedUsers);
-    
-    localStorage.setItem('currentUser', JSON.stringify(updatedUser));
-    localStorage.setItem('users', JSON.stringify(updatedUsers));
-
-    return { success: true, message: 'Perfil actualizado exitosamente' };
   };
 
   const resetPassword = async (email: string): Promise<{ success: boolean; message: string }> => {
-    const foundUser = users.find(u => u.email === email);
-    
-    if (foundUser) {
-      // En un sistema real, aquí se enviaría un email
-      console.log(`Email de recuperación enviado a: ${email}`);
-      return { success: true, message: 'Se ha enviado un email de recuperación' };
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`
+      });
+      
+      if (error) throw error;
+      
+      return { success: true, message: 'Se ha enviado un email para restablecer la contraseña' };
+    } catch (error) {
+      console.error('Reset password error:', error);
+      return { success: false, message: 'Error al restablecer contraseña' };
     }
-    
-    return { success: false, message: 'Email no encontrado' };
   };
 
-  const addBankAccount = async (bankAccount: Omit<BankAccount, 'id'>): Promise<{ success: boolean; message: string }> => {
-    if (!user) {
-      return { success: false, message: 'No hay usuario autenticado' };
-    }
-
-    const newBankAccount: BankAccount = {
-      ...bankAccount,
-      id: Date.now().toString()
-    };
-
-    const updatedBankAccounts = [...(user.bankAccounts || []), newBankAccount];
-    return updateProfile({ bankAccounts: updatedBankAccounts });
+  const value: AuthContextType = {
+    user,
+    supabaseUser,
+    isAuthenticated,
+    loading,
+    login,
+    logout,
+    register,
+    updateProfile,
+    resetPassword
   };
-
-  const addDocument = async (document: Omit<Document, 'id' | 'uploadDate'>): Promise<{ success: boolean; message: string }> => {
-    if (!user) {
-      return { success: false, message: 'No hay usuario autenticado' };
-    }
-
-    const newDocument: Document = {
-      ...document,
-      id: Date.now().toString(),
-      uploadDate: new Date().toISOString()
-    };
-
-    const updatedDocuments = [...(user.documents || []), newDocument];
-    return updateProfile({ documents: updatedDocuments });
-  };
-
-  const getAllUsers = () => users;
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      users,
-      isAuthenticated,
-      loading,
-      login,
-      logout,
-      register,
-      updateProfile,
-      resetPassword,
-      addBankAccount,
-      addDocument,
-      getAllUsers
-    }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
@@ -290,8 +233,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth debe ser usado dentro de AuthProvider');
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 }; 
