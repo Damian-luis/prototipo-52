@@ -69,7 +69,7 @@ export default function GoogleLoginButton({
         theme: 'outline',
         size: 'large',
         type: 'standard',
-        text: 'signin_with',
+        text: 'continue_with',
         shape: 'rectangular',
         logo_alignment: 'left',
         width: '100%',
