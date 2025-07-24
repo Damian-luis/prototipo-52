@@ -1,142 +1,210 @@
-'use client'
+"use client";
 import React, { useState, useEffect } from 'react';
+import { contractsService } from '@/services/contracts.service';
+import { usersService } from '@/services/users.service';
 import { useAuth } from '@/context/AuthContext';
-import { contractService, userService } from '@/services/supabase';
+import Card from '@/components/ui/card/Card';
+import Button from '@/components/ui/button/Button';
 
 export default function TestContractPage() {
-  const { user } = useAuth();
+  const [contracts, setContracts] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const { user } = useAuth();
 
   useEffect(() => {
-    const loadUsers = async () => {
+    const loadData = async () => {
+      setLoading(true);
       try {
-        setLoading(true);
-        const allUsers = await userService.getAllUsers();
-        setUsers(allUsers);
+        // Cargar contratos y usuarios del backend
+        const [contractsData, usersData] = await Promise.all([
+          contractsService.getAllContracts(),
+          usersService.getAllUsers(),
+        ]);
+        
+        setContracts(contractsData);
+        setUsers(usersData);
       } catch (error) {
-        console.error('Error loading users:', error);
-        setMessage('Error al cargar usuarios');
+        console.error('Error loading data:', error);
+        setError('Error al cargar los datos');
       } finally {
         setLoading(false);
       }
     };
 
-    loadUsers();
+    loadData();
   }, []);
 
   const createTestContract = async () => {
     if (!user?.id) {
-      setMessage('Usuario no autenticado');
+      setError('Usuario no autenticado');
       return;
     }
 
     try {
-      // Buscar un profesional para crear el contrato
-      const professional = users.find(u => u.role === 'profesional');
-      if (!professional) {
-        setMessage('No hay profesionales disponibles');
-        return;
-      }
-
-      const contractData = {
-        project_id: 'test-project-id',
-        project_title: 'Proyecto de Prueba',
-        company_id: user.id,
-        company_name: user.name || 'Empresa Test',
-        professional_id: professional.id,
-        professional_name: professional.name,
+      setLoading(true);
+      const testContract = {
+        title: 'Proyecto de Prueba',
+        projectId: 'test-project-id',
+        companyId: user.id,
+        professionalId: 'test-professional-id',
         type: 'fixed' as const,
         status: 'draft' as const,
-        start_date: new Date().toISOString(),
-        end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 días
-        value: 5000,
+        startDate: new Date().toISOString(),
+        value: 1000,
         currency: 'USD',
-        payment_terms: 'Mensual',
-        signatures: []
+        paymentTerms: 'Pago al completar el proyecto',
       };
 
-      const contractId = await contractService.createContract(contractData);
-      setMessage(`Contrato de prueba creado exitosamente con ID: ${contractId}`);
+      const newContract = await contractsService.createContract(testContract);
+      setContracts(prev => [newContract, ...prev]);
+      setError('');
     } catch (error) {
       console.error('Error creating test contract:', error);
-      setMessage('Error al crear el contrato de prueba');
+      setError('Error al crear el contrato de prueba');
+    } finally {
+      setLoading(false);
     }
   };
 
-  if (loading) {
+  if (loading && contracts.length === 0) {
     return (
-      <div className="p-6">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mb-6"></div>
-          <div className="h-64 bg-gray-200 dark:bg-gray-700 rounded"></div>
-        </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-6">
-        Página de Prueba de Contratos
-      </h1>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+            Página de Prueba de Contratos
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400">
+            Esta página permite probar la funcionalidad de contratos con el backend
+          </p>
+        </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm mb-6">
-        <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">
-          Crear Contrato de Prueba
-        </h2>
-        
-        <button
-          onClick={createTestContract}
-          className="px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600"
-        >
-          Crear Contrato de Prueba
-        </button>
-
-        {message && (
-          <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-lg">
-            {message}
-          </div>
+        {error && (
+          <Card className="mb-6 p-4 border-red-200 bg-red-50 dark:bg-red-900/10">
+            <p className="text-red-800 dark:text-red-200">{error}</p>
+          </Card>
         )}
-      </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">
-          Usuarios Disponibles ({users.length})
-        </h2>
-        
-        <div className="grid gap-4">
-          {users.map((user) => (
-            <div key={user.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h3 className="font-medium text-gray-800 dark:text-white">
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Sección de Contratos */}
+          <Card className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                Contratos ({contracts.length})
+              </h2>
+              <Button
+                onClick={createTestContract}
+                disabled={loading}
+                loading={loading}
+                variant="primary"
+                size="sm"
+              >
+                Crear Contrato de Prueba
+              </Button>
+            </div>
+
+            <div className="space-y-4">
+              {contracts.map((contract) => (
+                <div
+                  key={contract.id}
+                  className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg"
+                >
+                  <h3 className="font-medium text-gray-900 dark:text-white">
+                    {contract.project_title}
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Estado: {contract.status}
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Valor: ${contract.value} {contract.currency}
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Empresa: {contract.company_name}
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Profesional: {contract.professional_name}
+                  </p>
+                </div>
+              ))}
+
+              {contracts.length === 0 && (
+                <p className="text-gray-500 dark:text-gray-400 text-center py-8">
+                  No hay contratos disponibles
+                </p>
+              )}
+            </div>
+          </Card>
+
+          {/* Sección de Usuarios */}
+          <Card className="p-6">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+              Usuarios ({users.length})
+            </h2>
+
+            <div className="space-y-4">
+              {users.map((user) => (
+                <div
+                  key={user.id}
+                  className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg"
+                >
+                  <h3 className="font-medium text-gray-900 dark:text-white">
                     {user.name}
                   </h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {user.email}
+                    Email: {user.email}
                   </p>
-                  <p className="text-sm text-gray-500 dark:text-gray-500">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
                     Rol: {user.role}
                   </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Activo: {user.is_active ? 'Sí' : 'No'}
+                  </p>
                 </div>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                  user.is_active 
-                    ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
-                    : 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
-                }`}>
-                  {user.is_active ? 'Activo' : 'Inactivo'}
-                </span>
-              </div>
+              ))}
+
+              {users.length === 0 && (
+                <p className="text-gray-500 dark:text-gray-400 text-center py-8">
+                  No hay usuarios disponibles
+                </p>
+              )}
             </div>
-          ))}
+          </Card>
         </div>
 
-        {users.length === 0 && (
-          <p className="text-gray-500 dark:text-gray-400 text-center py-8">
-            No hay usuarios disponibles
-          </p>
+        {/* Información del Usuario Actual */}
+        {user && (
+          <Card className="mt-6 p-6">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+              Usuario Actual
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">ID:</p>
+                <p className="font-medium text-gray-900 dark:text-white">{user.id}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Nombre:</p>
+                <p className="font-medium text-gray-900 dark:text-white">{user.name}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Email:</p>
+                <p className="font-medium text-gray-900 dark:text-white">{user.email}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Rol:</p>
+                <p className="font-medium text-gray-900 dark:text-white capitalize">{user.role}</p>
+              </div>
+            </div>
+          </Card>
         )}
       </div>
     </div>

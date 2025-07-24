@@ -41,8 +41,8 @@ export const Dropdown: React.FC<DropdownProps> = ({
     if (isOpen && triggerRef?.current) {
       const rect = triggerRef.current.getBoundingClientRect();
       let left = rect.left + window.scrollX;
-      let top = rect.bottom + window.scrollY;
-      let width = rect.width;
+      const top = rect.bottom + window.scrollY;
+      const width = rect.width;
       const menuWidth = 280;
       const viewportWidth = window.innerWidth;
       if (left + menuWidth > viewportWidth - 8) {

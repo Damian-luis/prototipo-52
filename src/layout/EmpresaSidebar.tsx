@@ -1,211 +1,343 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { useSidebar } from "@/context/SidebarContext";
-import { useAuth } from "@/context/AuthContext";
-import { useNotification } from "@/context/NotificationContext";
+import { useSidebar } from "../context/SidebarContext";
 import {
-  BoxIcon,
-  Group,
+  ChevronDown,
+  Grid,
+  HorizontalDots,
+  List,
+  UserCircle,
   File,
-  DollarLine,
+  ShootingStar,
   PieChart,
+  CalenderLine,
+  Group,
+  DollarLine,
   BellIcon,
   PlugIn,
-  Close,
-  ChevronLeft,
-  ChevronDown
-} from "@/icons";
+} from "../icons/index";
+import SidebarWidget from "./SidebarWidget";
 
-const EmpresaSidebar = () => {
+type NavItem = {
+  name: string;
+  icon: React.ReactNode;
+  path?: string;
+  subItems?: { name: string; path: string; pro?: boolean; new?: boolean }[];
+};
+
+const navItems: NavItem[] = [
+  {
+    icon: <Grid />,
+    name: "Dashboard",
+    path: "/empresa",
+  },
+  {
+    icon: <File />,
+    name: "Proyectos",
+    subItems: [
+      { name: "Mis Proyectos", path: "/empresa/proyectos" },
+      { name: "Crear Proyecto", path: "/empresa/proyectos/nuevo" },
+      { name: "Proyectos Activos", path: "/empresa/proyectos/activos" },
+      { name: "Historial", path: "/empresa/proyectos/historial" },
+    ],
+  },
+  {
+    icon: <Group />,
+    name: "Profesionales",
+    subItems: [
+      { name: "Buscar Talento", path: "/empresa/profesionales" },
+      { name: "Mis Equipos", path: "/empresa/profesionales/equipos" },
+      { name: "Evaluaciones", path: "/empresa/profesionales/evaluaciones" },
+    ],
+  },
+  {
+    icon: <File />,
+    name: "Contratos",
+    subItems: [
+      { name: "Mis Contratos", path: "/empresa/contratos" },
+      { name: "Contratos Activos", path: "/empresa/contratos/activos" },
+      { name: "Historial", path: "/empresa/contratos/historial" },
+      { name: "Nuevo Contrato", path: "/empresa/contratos/nuevo" },
+    ],
+  },
+  {
+    icon: <DollarLine />,
+    name: "Pagos",
+    subItems: [
+      { name: "Historial de Pagos", path: "/empresa/pagos" },
+      { name: "Pagos Pendientes", path: "/empresa/pagos/pendientes" },
+      { name: "Métodos de Pago", path: "/empresa/pagos/metodos" },
+    ],
+  },
+  {
+    icon: <PieChart />,
+    name: "Reportes",
+    subItems: [
+      { name: "Reportes Generales", path: "/empresa/reportes" },
+      { name: "Análisis de Proyectos", path: "/empresa/reportes/proyectos" },
+      { name: "Métricas de Equipo", path: "/empresa/reportes/equipo" },
+    ],
+  },
+  {
+    icon: <BellIcon />,
+    name: "Notificaciones",
+    path: "/empresa/notificaciones",
+  },
+  {
+    icon: <PlugIn />,
+    name: "Configuración",
+    path: "/empresa/configuracion",
+  },
+];
+
+const EmpresaSidebar: React.FC = () => {
+  const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const pathname = usePathname();
-  const { isExpanded, toggleSidebar } = useSidebar();
-  const { user } = useAuth();
-  const { unreadCount } = useNotification();
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
 
-  const menuItems = [
-    {
-      title: "Dashboard",
-      icon: BoxIcon,
-      href: "/empresa",
-      badge: null
-    },
-    {
-      title: "Proyectos",
-      icon: File,
-      href: "/empresa/proyectos",
-      badge: null
-    },
-    {
-      title: "Profesionales",
-      icon: Group,
-      href: "/empresa/profesionales",
-      badge: null
-    },
-    {
-      title: "Contratos",
-      icon: File,
-      href: "/empresa/contratos",
-      badge: null
-    },
-    {
-      title: "Pagos",
-      icon: DollarLine,
-      href: "/empresa/pagos",
-      badge: null
-    },
-    {
-      title: "Reportes",
-      icon: PieChart,
-      href: "/empresa/reportes",
-      badge: null
-    },
-    {
-      title: "Notificaciones",
-      icon: BellIcon,
-      href: "/empresa/notificaciones",
-      badge: unreadCount > 0 ? unreadCount.toString() : null
-    },
-    {
-      title: "Configuración",
-      icon: PlugIn,
-      href: "/empresa/configuracion",
-      badge: null
-    }
-  ];
+  const renderMenuItems = (navItems: NavItem[]) => (
+    <ul className="flex flex-col gap-4">
+      {navItems.map((nav, index) => (
+        <li key={nav.name}>
+          {nav.subItems ? (
+            <button
+              onClick={() => handleSubmenuToggle(index)}
+              className={`menu-item group  ${
+                openSubmenu === index
+                  ? "menu-item-active"
+                  : "menu-item-inactive"
+              } cursor-pointer ${
+                !isExpanded && !isHovered
+                  ? "lg:justify-center"
+                  : "lg:justify-start"
+              }`}
+            >
+              <span
+                className={` ${
+                  openSubmenu === index
+                    ? "menu-item-icon-active"
+                    : "menu-item-icon-inactive"
+                }`}
+              >
+                {nav.icon}
+              </span>
+              {(isExpanded || isHovered || isMobileOpen) && (
+                <span className={`menu-item-text`}>{nav.name}</span>
+              )}
+              {(isExpanded || isHovered || isMobileOpen) && (
+                <ChevronDown
+                  className={`ml-auto w-5 h-5 transition-transform duration-200  ${
+                    openSubmenu === index
+                      ? "rotate-180 text-brand-500"
+                      : ""
+                  }`}
+                />
+              )}
+            </button>
+          ) : (
+            nav.path && (
+              <Link
+                href={nav.path}
+                className={`menu-item group ${
+                  isActive(nav.path) ? "menu-item-active" : "menu-item-inactive"
+                }`}
+              >
+                <span
+                  className={`${
+                    isActive(nav.path)
+                      ? "menu-item-icon-active"
+                      : "menu-item-icon-inactive"
+                  }`}
+                >
+                  {nav.icon}
+                </span>
+                {(isExpanded || isHovered || isMobileOpen) && (
+                  <span className={`menu-item-text`}>{nav.name}</span>
+                )}
+              </Link>
+            )
+          )}
+          {nav.subItems && (isExpanded || isHovered || isMobileOpen) && (
+            <div
+              ref={(el) => {
+                subMenuRefs.current[index] = el;
+              }}
+              className="overflow-hidden transition-all duration-300"
+              style={{
+                height:
+                  openSubmenu === index
+                    ? `${subMenuHeight[index]}px`
+                    : "0px",
+              }}
+            >
+              <ul className="mt-2 space-y-1 ml-9">
+                {nav.subItems.map((subItem) => (
+                  <li key={subItem.name}>
+                    <Link
+                      href={subItem.path}
+                      className={`menu-dropdown-item ${
+                        isActive(subItem.path)
+                          ? "menu-dropdown-item-active"
+                          : "menu-dropdown-item-inactive"
+                      }`}
+                    >
+                      {subItem.name}
+                      <span className="flex items-center gap-1 ml-auto">
+                        {subItem.new && (
+                          <span
+                            className={`ml-auto ${
+                              isActive(subItem.path)
+                                ? "menu-dropdown-badge-active"
+                                : "menu-dropdown-badge-inactive"
+                            } menu-dropdown-badge `}
+                          >
+                            new
+                          </span>
+                        )}
+                        {subItem.pro && (
+                          <span
+                            className={`ml-auto ${
+                              isActive(subItem.path)
+                                ? "menu-dropdown-badge-active"
+                                : "menu-dropdown-badge-inactive"
+                            } menu-dropdown-badge `}
+                          >
+                            pro
+                          </span>
+                        )}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
 
-  const isActive = (href: string) => {
-    if (href === "/empresa") {
-      return pathname === "/empresa";
+  const [openSubmenu, setOpenSubmenu] = useState<number | null>(null);
+  const [subMenuHeight, setSubMenuHeight] = useState<Record<number, number>>({});
+  const subMenuRefs = useRef<Record<number, HTMLDivElement | null>>({});
+
+  const isActive = useCallback((path: string) => pathname === path, [pathname]);
+
+  useEffect(() => {
+    // Check if the current path matches any submenu item
+    let submenuMatched = false;
+    navItems.forEach((nav, index) => {
+      if (nav.subItems) {
+        nav.subItems.forEach((subItem) => {
+          if (isActive(subItem.path)) {
+            setOpenSubmenu(index);
+            submenuMatched = true;
+          }
+        });
+      }
+    });
+
+    // If no submenu item matches, close the open submenu
+    if (!submenuMatched) {
+      setOpenSubmenu(null);
     }
-    return pathname.startsWith(href);
+  }, [pathname, isActive]);
+
+  useEffect(() => {
+    // Set the height of the submenu items when the submenu is opened
+    if (openSubmenu !== null) {
+      if (subMenuRefs.current[openSubmenu]) {
+        setSubMenuHeight((prevHeights) => ({
+          ...prevHeights,
+          [openSubmenu]: subMenuRefs.current[openSubmenu]?.scrollHeight || 0,
+        }));
+      }
+    }
+  }, [openSubmenu]);
+
+  const handleSubmenuToggle = (index: number) => {
+    setOpenSubmenu((prevOpenSubmenu) => {
+      if (prevOpenSubmenu === index) {
+        return null;
+      }
+      return index;
+    });
   };
 
   return (
-    <>
-      {/* Mobile backdrop */}
-      {isMobileOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black bg-opacity-50 lg:hidden"
-          onClick={() => setIsMobileOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside
-        className={`fixed left-0 top-0 z-50 h-full w-[290px] transform bg-white shadow-lg transition-all duration-300 dark:bg-gray-900 lg:translate-x-0 ${
-          isMobileOpen ? "translate-x-0" : "-translate-x-full"
-        } lg:relative lg:translate-x-0`}
+    <aside
+      className={`fixed mt-16 flex flex-col lg:mt-0 top-0 px-5 left-0 bg-white dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen transition-all duration-300 ease-in-out z-50 border-r border-gray-200 
+        ${
+          isExpanded || isMobileOpen
+            ? "w-[290px]"
+            : isHovered
+            ? "w-[290px]"
+            : "w-[90px]"
+        }
+        ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
+        lg:translate-x-0`}
+      onMouseEnter={() => !isExpanded && setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <div
+        className={`py-8 flex  ${
+          !isExpanded && !isHovered ? "lg:justify-center" : "justify-start"
+        }`}
       >
-        <div className="flex h-full flex-col">
-          {/* Header */}
-          <div className="flex h-16 items-center justify-between px-4 border-b border-gray-200 dark:border-gray-800">
-            <div className="flex items-center space-x-3">
-              <div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center">
-                <span className="text-white font-bold text-sm">E</span>
-              </div>
-              {isExpanded && (
-                <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Empresa
-                </span>
-              )}
-            </div>
-            <button
-              onClick={() => setIsMobileOpen(false)}
-              className="lg:hidden p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
-            >
-              <Close className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-            </button>
-          </div>
-
-          {/* User info */}
-          {isExpanded && (
-            <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800">
-              <div className="flex items-center space-x-3">
-                <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                  <span className="text-blue-600 dark:text-blue-300 font-semibold">
-                    {user?.name?.charAt(0) || "E"}
-                  </span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                    {user?.name || "Empresa"}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                    {user?.email}
-                  </p>
-                </div>
-              </div>
-            </div>
+        <Link href="/empresa">
+          {isExpanded || isHovered || isMobileOpen ? (
+            <>
+              <Image
+                className="dark:hidden"
+                src="/images/logo/logo.svg"
+                alt="FreelaSaaS Logo"
+                width={150}
+                height={40}
+              />
+              <Image
+                className="hidden dark:block"
+                src="/images/logo/logo-dark.svg"
+                alt="FreelaSaaS Logo"
+                width={150}
+                height={40}
+              />
+            </>
+          ) : (
+            <Image
+              src="/images/logo/logo-icon.svg"
+              alt="Logo"
+              width={32}
+              height={32}
+            />
           )}
-
-          {/* Navigation */}
-          <nav className="flex-1 overflow-y-auto py-4">
-            <ul className="space-y-1 px-3">
-              {menuItems.map((item) => {
-                const Icon = item.icon;
-                const active = isActive(item.href);
-                
-                return (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      onClick={() => setIsMobileOpen(false)}
-                      className={`group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                        active
-                          ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
-                          : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
-                      }`}
-                    >
-                      <Icon className={`h-5 w-5 mr-3 ${
-                        active ? "text-blue-600 dark:text-blue-400" : "text-gray-500 dark:text-gray-400"
-                      }`} />
-                      {isExpanded && (
-                        <>
-                          <span className="flex-1">{item.title}</span>
-                          {item.badge && (
-                            <span className="ml-2 inline-flex items-center px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full dark:bg-red-900 dark:text-red-300">
-                              {item.badge}
-                            </span>
-                          )}
-                        </>
-                      )}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </nav>
-
-          {/* Footer */}
-          <div className="border-t border-gray-200 dark:border-gray-800 p-4">
-            <button
-              onClick={toggleSidebar}
-              className="flex items-center justify-center w-full px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg dark:text-gray-300 dark:hover:bg-gray-800 transition-colors"
-            >
-              {isExpanded ? (
-                <>
-                  <ChevronLeft className="h-4 w-4 mr-2" />
-                  <span>Contraer</span>
-                </>
-              ) : (
-                <ChevronDown className="h-4 w-4" />
-              )}
-            </button>
+        </Link>
+      </div>
+      <div className="flex flex-col overflow-y-auto duration-300 ease-linear no-scrollbar">
+        <nav className="mb-6">
+          <div className="flex flex-col gap-4">
+            <div>
+              <h2
+                className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
+                  !isExpanded && !isHovered
+                    ? "lg:justify-center"
+                    : "justify-start"
+                }`}
+              >
+                {isExpanded || isHovered || isMobileOpen ? (
+                  "Menu Empresa"
+                ) : (
+                  <HorizontalDots />
+                )}
+              </h2>
+              {renderMenuItems(navItems)}
+            </div>
           </div>
-        </div>
-      </aside>
-
-      {/* Mobile menu button */}
-      <button
-        onClick={() => setIsMobileOpen(true)}
-        className="fixed top-4 left-4 z-30 lg:hidden p-2 rounded-md bg-white shadow-lg dark:bg-gray-900"
-      >
-        <BoxIcon className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-      </button>
-    </>
+        </nav>
+        {isExpanded || isHovered || isMobileOpen ? <SidebarWidget /> : null}
+      </div>
+    </aside>
   );
 };
 

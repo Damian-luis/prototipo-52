@@ -1,218 +1,148 @@
 "use client";
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { aiService, webhookService } from '@/services/supabase';
-import { AIRecommendation, Interest, AIWebhookPayload } from '@/types';
+import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import { AIRecommendation } from '@/types';
 
 interface AIContextType {
   recommendations: AIRecommendation[];
-  interests: Interest[];
   loading: boolean;
   error: string | null;
-  generateProfessionalRecommendations: (projectRequirements: any) => Promise<AIRecommendation[]>;
-  analyzeProfessional: (professionalId: string, projectRequirements: any) => Promise<void>;
-  createInterest: (interestData: Omit<Interest, 'id' | 'created_at'>) => Promise<{ success: boolean; message: string }>;
-  getRecommendationsByUser: (userId: string) => Promise<AIRecommendation[]>;
-  getInterestsByProfessional: (professionalId: string) => Promise<Interest[]>;
-  sendToAIWebhook: (payload: AIWebhookPayload) => Promise<void>;
+  getRecommendations: (userId: string, type?: string) => Promise<AIRecommendation[]>;
+  generateRecommendation: (data: any) => Promise<{ success: boolean; message: string; recommendation?: AIRecommendation }>;
+  updateRecommendation: (id: string, data: Partial<AIRecommendation>) => Promise<{ success: boolean; message: string }>;
+  deleteRecommendation: (id: string) => Promise<{ success: boolean; message: string }>;
 }
 
 const AIContext = createContext<AIContextType | undefined>(undefined);
 
 export const AIProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [recommendations, setRecommendations] = useState<AIRecommendation[]>([]);
-  const [interests, setInterests] = useState<Interest[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const generateProfessionalRecommendations = async (projectRequirements: any): Promise<AIRecommendation[]> => {
+  const getRecommendations = useCallback(async (userId: string, type?: string): Promise<AIRecommendation[]> => {
     try {
       setLoading(true);
       setError(null);
-
-      // Enviar datos al webhook de IA para análisis
-      const payload: AIWebhookPayload = {
-        type: 'professional_matching',
-        data: {
-          projectRequirements,
-          timestamp: new Date().toISOString()
-        },
-        timestamp: new Date().toISOString()
-      };
-
-      await webhookService.sendToWebhook('https://your-n8n-webhook-url.com', payload);
-
-      // Simular recomendaciones basadas en el análisis
+      
+      // Por ahora, simulamos las recomendaciones ya que no hay un servicio específico de IA
+      // En el futuro, esto se conectaría con el servicio de IA del backend
       const mockRecommendations: AIRecommendation[] = [
         {
-          id: Date.now().toString(),
+          id: '1',
           type: 'professional',
-          title: 'Profesional Recomendado #1',
-          description: 'Perfil que coincide con los requerimientos del proyecto',
+          title: 'Profesional recomendado para tu proyecto',
+          description: 'Basado en las habilidades requeridas, te recomendamos este profesional con experiencia similar.',
           confidence: 85,
-          data: {
-            professional_id: 'prof1',
-            matched_skills: ['React', 'Node.js', 'TypeScript'],
-            score: 85
-          },
+          data: { professionalId: 'prof-1', skills: ['React', 'Node.js'] },
           created_at: new Date().toISOString(),
-          user_id: 'current-user'
+          user_id: userId
         },
         {
-          id: (Date.now() + 1).toString(),
-          type: 'professional',
-          title: 'Profesional Recomendado #2',
-          description: 'Segunda opción con buena compatibilidad',
-          confidence: 72,
-          data: {
-            professional_id: 'prof2',
-            matched_skills: ['React', 'JavaScript'],
-            score: 72
-          },
+          id: '2',
+          type: 'project',
+          title: 'Proyecto que coincide con tu perfil',
+          description: 'Este proyecto se alinea perfectamente con tus habilidades y experiencia.',
+          confidence: 92,
+          data: { projectId: 'proj-1', matchedSkills: ['TypeScript', 'Next.js'] },
           created_at: new Date().toISOString(),
-          user_id: 'current-user'
+          user_id: userId
         }
       ];
-
-      // Guardar recomendaciones en Supabase
-      for (const recommendation of mockRecommendations) {
-        await aiService.createAIRecommendation(recommendation);
-      }
-
-      setRecommendations(prev => [...mockRecommendations, ...prev]);
-      return mockRecommendations;
-    } catch (error) {
-      const message = 'Error al generar recomendaciones';
+      
+      const filteredRecommendations = type 
+        ? mockRecommendations.filter(rec => rec.type === type)
+        : mockRecommendations;
+      
+      setRecommendations(filteredRecommendations);
+      return filteredRecommendations;
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Error al obtener recomendaciones';
       setError(message);
       return [];
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const analyzeProfessional = async (professionalId: string, projectRequirements: any): Promise<void> => {
+  const generateRecommendation = useCallback(async (data: any): Promise<{ success: boolean; message: string; recommendation?: AIRecommendation }> => {
     try {
       setLoading(true);
       setError(null);
-
-      // Enviar análisis al webhook
-      const payload: AIWebhookPayload = {
-        type: 'professional_matching',
-        data: {
-          professionalId,
-          projectRequirements,
-          timestamp: new Date().toISOString()
-        },
-        timestamp: new Date().toISOString()
+      
+      // Simular generación de recomendación
+      const newRecommendation: AIRecommendation = {
+        id: Date.now().toString(),
+        type: data.type || 'professional',
+        title: data.title || 'Nueva recomendación',
+        description: data.description || 'Recomendación generada por IA',
+        confidence: Math.floor(Math.random() * 30) + 70, // 70-100
+        data: data.data || {},
+        created_at: new Date().toISOString(),
+        user_id: data.userId
       };
-
-      await webhookService.sendToWebhook('https://your-n8n-webhook-url.com', payload);
-
-      // Crear interés basado en el análisis
-      const interestData: Omit<Interest, 'id' | 'created_at'> = {
-        professional_id: professionalId,
-        project_id: projectRequirements.projectId,
-        score: Math.floor(Math.random() * 40) + 60, // Score entre 60-100
-        matched_skills: projectRequirements.skills || [],
-        ai_recommendation: true
+      
+      setRecommendations(prev => [newRecommendation, ...prev]);
+      
+      return { 
+        success: true, 
+        message: 'Recomendación generada exitosamente',
+        recommendation: newRecommendation
       };
-
-      await aiService.createInterest(interestData);
-    } catch (error) {
-      const message = 'Error al analizar profesional';
-      setError(message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const createInterest = async (interestData: Omit<Interest, 'id' | 'created_at'>): Promise<{ success: boolean; message: string }> => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const interestId = await aiService.createInterest(interestData);
-
-      // Actualizar estado local
-      const newInterest: Interest = {
-        id: interestId,
-        ...interestData,
-        created_at: new Date().toISOString()
-      };
-
-      setInterests(prev => [newInterest, ...prev]);
-
-      return { success: true, message: 'Interés creado exitosamente' };
-    } catch (error) {
-      const message = 'Error al crear interés';
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Error al generar recomendación';
       setError(message);
       return { success: false, message };
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const getRecommendationsByUser = async (userId: string): Promise<AIRecommendation[]> => {
+  const updateRecommendation = useCallback(async (id: string, data: Partial<AIRecommendation>): Promise<{ success: boolean; message: string }> => {
     try {
       setLoading(true);
       setError(null);
-
-      const userRecommendations = await aiService.getAIRecommendations(userId);
-      setRecommendations(userRecommendations);
-
-      return userRecommendations;
-    } catch (error) {
-      const message = 'Error al obtener recomendaciones';
+      
+      // Actualizar estado local
+      setRecommendations(prev => prev.map(rec => 
+        rec.id === id ? { ...rec, ...data } : rec
+      ));
+      
+      return { success: true, message: 'Recomendación actualizada exitosamente' };
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Error al actualizar recomendación';
       setError(message);
-      return [];
+      return { success: false, message };
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const getInterestsByProfessional = async (professionalId: string): Promise<Interest[]> => {
+  const deleteRecommendation = useCallback(async (id: string): Promise<{ success: boolean; message: string }> => {
     try {
       setLoading(true);
       setError(null);
-
-      const professionalInterests = await aiService.getInterestsByProfessional(professionalId);
-      setInterests(professionalInterests);
-
-      return professionalInterests;
-    } catch (error) {
-      const message = 'Error al obtener intereses';
+      
+      // Eliminar del estado local
+      setRecommendations(prev => prev.filter(rec => rec.id !== id));
+      
+      return { success: true, message: 'Recomendación eliminada exitosamente' };
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Error al eliminar recomendación';
       setError(message);
-      return [];
+      return { success: false, message };
     } finally {
       setLoading(false);
     }
-  };
-
-  const sendToAIWebhook = async (payload: AIWebhookPayload): Promise<void> => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      await webhookService.sendToWebhook('https://your-n8n-webhook-url.com', payload);
-    } catch (error) {
-      const message = 'Error al enviar datos al webhook de IA';
-      setError(message);
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, []);
 
   const value: AIContextType = {
     recommendations,
-    interests,
     loading,
     error,
-    generateProfessionalRecommendations,
-    analyzeProfessional,
-    createInterest,
-    getRecommendationsByUser,
-    getInterestsByProfessional,
-    sendToAIWebhook
+    getRecommendations,
+    generateRecommendation,
+    updateRecommendation,
+    deleteRecommendation,
   };
 
   return (

@@ -1,52 +1,49 @@
 "use client";
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
-import { projectService } from '@/services/supabase';
-import { Project, Task } from '@/types';
+import { jobsService, Job, CreateJobData, UpdateJobData } from '@/services/jobs.service';
+import { applicationsService, Application } from '@/services/applications.service';
 
 interface ProjectContextType {
-  projects: Project[];
-  currentProject: Project | null;
+  jobs: Job[];
+  currentJob: Job | null;
+  applications: Application[];
   loading: boolean;
   error: string | null;
-  createProject: (projectData: Omit<Project, 'id' | 'created_at' | 'updated_at'>) => Promise<{ success: boolean; message: string; projectId?: string }>;
-  updateProject: (id: string, projectData: Partial<Project>) => Promise<{ success: boolean; message: string }>;
-  deleteProject: (id: string) => Promise<{ success: boolean; message: string }>;
-  getProjectById: (id: string) => Promise<Project | null>;
-  getProjectsByCompany: (companyId: string) => Promise<Project[]>;
-  getActiveProjects: () => Promise<Project[]>;
-  addTaskToProject: (projectId: string, task: Omit<Task, 'id'>) => Promise<{ success: boolean; message: string }>;
-  updateTask: (projectId: string, taskId: string, taskData: Partial<Task>) => Promise<{ success: boolean; message: string }>;
-  assignProfessionalToProject: (projectId: string, professionalId: string) => Promise<{ success: boolean; message: string }>;
+  createJob: (jobData: CreateJobData) => Promise<{ success: boolean; message: string; jobId?: string }>;
+  updateJob: (id: string, jobData: UpdateJobData) => Promise<{ success: boolean; message: string }>;
+  deleteJob: (id: string) => Promise<{ success: boolean; message: string }>;
+  getJobById: (id: string) => Promise<Job | null>;
+  getAllJobs: (filters?: any) => Promise<Job[]>;
+  searchJobs: (query: string, filters?: any) => Promise<Job[]>;
+  getJobsByCompany: () => Promise<Job[]>;
+  getJobStats: () => Promise<any>;
+  getApplicationsByJob: (jobId: string) => Promise<Application[]>;
+  createApplication: (applicationData: any) => Promise<{ success: boolean; message: string; applicationId?: string }>;
+  getApplicationsByProfessional: () => Promise<Application[]>;
+  getApplicationStats: () => Promise<any>;
 }
 
 const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
 
 export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [currentProject, setCurrentProject] = useState<Project | null>(null);
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [currentJob, setCurrentJob] = useState<Job | null>(null);
+  const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const createProject = useCallback(async (projectData: Omit<Project, 'id' | 'created_at' | 'updated_at'>): Promise<{ success: boolean; message: string; projectId?: string }> => {
+  const createJob = useCallback(async (jobData: CreateJobData): Promise<{ success: boolean; message: string; jobId?: string }> => {
     try {
       setLoading(true);
       setError(null);
       
-      const projectId = await projectService.createProject(projectData);
+      const newJob = await jobsService.createJob(jobData);
       
-      // Crear el objeto del proyecto para el estado local
-      const newProject: Project = {
-        id: projectId,
-        ...projectData,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
+      setJobs(prev => [newJob, ...prev]);
       
-      setProjects(prev => [newProject, ...prev]);
-      
-      return { success: true, message: 'Proyecto creado exitosamente', projectId };
-    } catch (error) {
-      const message = 'Error al crear proyecto';
+      return { success: true, message: 'Trabajo creado exitosamente', jobId: newJob.id };
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Error al crear trabajo';
       setError(message);
       return { success: false, message };
     } finally {
@@ -54,68 +51,65 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   }, []);
 
-  const updateProject = useCallback(async (id: string, projectData: Partial<Project>): Promise<{ success: boolean; message: string }> => {
+  const updateJob = useCallback(async (id: string, jobData: UpdateJobData): Promise<{ success: boolean; message: string }> => {
     try {
       setLoading(true);
       setError(null);
       
-      await projectService.updateProject(id, projectData);
+      const updatedJob = await jobsService.updateJob(id, jobData);
       
       // Actualizar estado local
-      setProjects(prev => prev.map(project => 
-        project.id === id 
-          ? { ...project, ...projectData, updated_at: new Date().toISOString() }
-          : project
+      setJobs(prev => prev.map(job => 
+        job.id === id ? updatedJob : job
       ));
       
-      if (currentProject?.id === id) {
-        setCurrentProject(prev => prev ? { ...prev, ...projectData, updated_at: new Date().toISOString() } : null);
+      if (currentJob?.id === id) {
+        setCurrentJob(updatedJob);
       }
       
-      return { success: true, message: 'Proyecto actualizado exitosamente' };
-    } catch (error) {
-      const message = 'Error al actualizar proyecto';
+      return { success: true, message: 'Trabajo actualizado exitosamente' };
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Error al actualizar trabajo';
       setError(message);
       return { success: false, message };
     } finally {
       setLoading(false);
     }
-  }, [currentProject?.id]);
+  }, [currentJob?.id]);
 
-  const deleteProject = useCallback(async (id: string): Promise<{ success: boolean; message: string }> => {
+  const deleteJob = useCallback(async (id: string): Promise<{ success: boolean; message: string }> => {
     try {
       setLoading(true);
       setError(null);
       
-      await projectService.deleteProject(id);
+      await jobsService.deleteJob(id);
       
-      setProjects(prev => prev.filter(project => project.id !== id));
+      setJobs(prev => prev.filter(job => job.id !== id));
       
-      if (currentProject?.id === id) {
-        setCurrentProject(null);
+      if (currentJob?.id === id) {
+        setCurrentJob(null);
       }
       
-      return { success: true, message: 'Proyecto eliminado exitosamente' };
-    } catch (error) {
-      const message = 'Error al eliminar proyecto';
+      return { success: true, message: 'Trabajo eliminado exitosamente' };
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Error al eliminar trabajo';
       setError(message);
       return { success: false, message };
     } finally {
       setLoading(false);
     }
-  }, [currentProject?.id]);
+  }, [currentJob?.id]);
 
-  const getProjectById = useCallback(async (id: string): Promise<Project | null> => {
+  const getJobById = useCallback(async (id: string): Promise<Job | null> => {
     try {
       setLoading(true);
       setError(null);
       
-      const project = await projectService.getProjectById(id);
-      setCurrentProject(project);
-      
-      return project;
-    } catch (error) {
-      const message = 'Error al obtener proyecto';
+      const job = await jobsService.getJobById(id);
+      setCurrentJob(job);
+      return job;
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Error al obtener trabajo';
       setError(message);
       return null;
     } finally {
@@ -123,17 +117,16 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   }, []);
 
-  const getProjectsByCompany = useCallback(async (companyId: string): Promise<Project[]> => {
+  const getAllJobs = useCallback(async (filters?: any): Promise<Job[]> => {
     try {
       setLoading(true);
       setError(null);
       
-      const companyProjects = await projectService.getProjectsByCompany(companyId);
-      setProjects(companyProjects);
-      
-      return companyProjects;
-    } catch (error) {
-      const message = 'Error al obtener proyectos de la empresa';
+      const allJobs = await jobsService.getAllJobs(filters);
+      setJobs(allJobs);
+      return allJobs;
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Error al obtener trabajos';
       setError(message);
       return [];
     } finally {
@@ -141,151 +134,142 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   }, []);
 
-  const getActiveProjects = useCallback(async (): Promise<Project[]> => {
+  const searchJobs = useCallback(async (query: string, filters?: any): Promise<Job[]> => {
     try {
       setLoading(true);
       setError(null);
       
-      // Filtrar proyectos activos desde el estado local
-      const activeProjects = projects.filter(project => project.status === 'active');
-      setProjects(activeProjects);
-      
-      return activeProjects;
-    } catch (error) {
-      const message = 'Error al obtener proyectos activos';
+      const searchResults = await jobsService.searchJobs(query, filters);
+      return searchResults;
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Error al buscar trabajos';
       setError(message);
       return [];
     } finally {
       setLoading(false);
     }
-  }, [projects]);
+  }, []);
 
-  const addTaskToProject = useCallback(async (projectId: string, taskData: Omit<Task, 'id'>): Promise<{ success: boolean; message: string }> => {
+  const getJobsByCompany = useCallback(async (): Promise<Job[]> => {
     try {
       setLoading(true);
       setError(null);
       
-      const newTask: Task = {
-        id: Date.now().toString(),
-        ...taskData
-      };
+      const companyJobs = await jobsService.getJobsByCompany();
+      setJobs(companyJobs);
+      return companyJobs;
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Error al obtener trabajos de la empresa';
+      setError(message);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const getJobStats = useCallback(async (): Promise<any> => {
+    try {
+      setLoading(true);
+      setError(null);
       
-      const project = projects.find(p => p.id === projectId);
-      if (!project) {
-        return { success: false, message: 'Proyecto no encontrado' };
-      }
+      const stats = await jobsService.getJobStats();
+      return stats;
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Error al obtener estadísticas de trabajos';
+      setError(message);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const getApplicationsByJob = useCallback(async (jobId: string): Promise<Application[]> => {
+    try {
+      setLoading(true);
+      setError(null);
       
-      const updatedTasks = [...project.tasks, newTask];
-      await projectService.updateProject(projectId, { tasks: updatedTasks });
+      const jobApplications = await applicationsService.getApplicationsByJob(jobId);
+      setApplications(jobApplications);
+      return jobApplications;
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Error al obtener aplicaciones del trabajo';
+      setError(message);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const createApplication = useCallback(async (applicationData: any): Promise<{ success: boolean; message: string; applicationId?: string }> => {
+    try {
+      setLoading(true);
+      setError(null);
       
-      // Actualizar estado local
-      setProjects(prev => prev.map(project => 
-        project.id === projectId 
-          ? { ...project, tasks: updatedTasks, updatedAt: new Date().toISOString() }
-          : project
-      ));
+      const newApplication = await applicationsService.createApplication(applicationData);
       
-      if (currentProject?.id === projectId) {
-        setCurrentProject(prev => prev ? { ...prev, tasks: updatedTasks, updatedAt: new Date().toISOString() } : null);
-      }
+      setApplications(prev => [newApplication, ...prev]);
       
-      return { success: true, message: 'Tarea agregada exitosamente' };
-    } catch (error) {
-      const message = 'Error al agregar tarea';
+      return { success: true, message: 'Aplicación enviada exitosamente', applicationId: newApplication.id };
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Error al enviar aplicación';
       setError(message);
       return { success: false, message };
     } finally {
       setLoading(false);
     }
-  }, [projects, currentProject?.id]);
+  }, []);
 
-  const updateTask = useCallback(async (projectId: string, taskId: string, taskData: Partial<Task>): Promise<{ success: boolean; message: string }> => {
+  const getApplicationsByProfessional = useCallback(async (): Promise<Application[]> => {
     try {
       setLoading(true);
       setError(null);
       
-      const project = projects.find(p => p.id === projectId);
-      if (!project) {
-        return { success: false, message: 'Proyecto no encontrado' };
-      }
-      
-      const updatedTasks = project.tasks.map(task => 
-        task.id === taskId 
-          ? { ...task, ...taskData }
-          : task
-      );
-      
-      await projectService.updateProject(projectId, { tasks: updatedTasks });
-      
-      // Actualizar estado local
-      setProjects(prev => prev.map(project => 
-        project.id === projectId 
-          ? { ...project, tasks: updatedTasks, updatedAt: new Date().toISOString() }
-          : project
-      ));
-      
-      if (currentProject?.id === projectId) {
-        setCurrentProject(prev => prev ? { ...prev, tasks: updatedTasks, updatedAt: new Date().toISOString() } : null);
-      }
-      
-      return { success: true, message: 'Tarea actualizada exitosamente' };
-    } catch (error) {
-      const message = 'Error al actualizar tarea';
+      const professionalApplications = await applicationsService.getApplicationsByProfessional();
+      setApplications(professionalApplications);
+      return professionalApplications;
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Error al obtener aplicaciones del profesional';
       setError(message);
-      return { success: false, message };
+      return [];
     } finally {
       setLoading(false);
     }
-  }, [projects, currentProject?.id]);
+  }, []);
 
-  const assignProfessionalToProject = useCallback(async (projectId: string, professionalId: string): Promise<{ success: boolean; message: string }> => {
+  const getApplicationStats = useCallback(async (): Promise<any> => {
     try {
       setLoading(true);
       setError(null);
       
-      const project = projects.find(p => p.id === projectId);
-      if (!project) {
-        return { success: false, message: 'Proyecto no encontrado' };
-      }
-      
-      const updatedProfessionals = [...project.professionals, professionalId];
-      await projectService.updateProject(projectId, { professionals: updatedProfessionals });
-      
-      // Actualizar estado local
-      setProjects(prev => prev.map(project => 
-        project.id === projectId 
-          ? { ...project, professionals: updatedProfessionals, updatedAt: new Date().toISOString() }
-          : project
-      ));
-      
-      if (currentProject?.id === projectId) {
-        setCurrentProject(prev => prev ? { ...prev, professionals: updatedProfessionals, updatedAt: new Date().toISOString() } : null);
-      }
-      
-      return { success: true, message: 'Profesional asignado exitosamente' };
-    } catch (error) {
-      const message = 'Error al asignar profesional';
+      const stats = await applicationsService.getApplicationStats();
+      return stats;
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Error al obtener estadísticas de aplicaciones';
       setError(message);
-      return { success: false, message };
+      return null;
     } finally {
       setLoading(false);
     }
-  }, [projects, currentProject?.id]);
+  }, []);
 
   const value: ProjectContextType = {
-    projects,
-    currentProject,
+    jobs,
+    currentJob,
+    applications,
     loading,
     error,
-    createProject,
-    updateProject,
-    deleteProject,
-    getProjectById,
-    getProjectsByCompany,
-    getActiveProjects,
-    addTaskToProject,
-    updateTask,
-    assignProfessionalToProject
+    createJob,
+    updateJob,
+    deleteJob,
+    getJobById,
+    getAllJobs,
+    searchJobs,
+    getJobsByCompany,
+    getJobStats,
+    getApplicationsByJob,
+    createApplication,
+    getApplicationsByProfessional,
+    getApplicationStats,
   };
 
   return (

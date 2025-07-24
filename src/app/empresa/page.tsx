@@ -1,237 +1,236 @@
 "use client";
-import React, { useEffect, useState } from "react";
-import { useAuth } from "@/context/AuthContext";
-import { useProject } from "@/context/ProjectContext";
-import { useContract } from "@/context/ContractContext";
-import { usePayment } from "@/context/PaymentContext";
-import { useAI } from "@/context/AIContext";
-import ComponentCard from "@/components/common/ComponentCard";
-import Link from "next/link";
-import { ArrowUpIcon, ArrowDownIcon } from "@/icons";
+import React, { useEffect, useState } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import { useContract } from '@/context/ContractContext';
+import { usePayment } from '@/context/PaymentContext';
+import { jobsService } from '@/services/jobs.service';
+import { applicationsService } from '@/services/applications.service';
+import { consultationsService } from '@/services/consultations.service';
+import Card from '@/components/ui/card/Card';
+import Button from '@/components/ui/button/Button';
+import Badge from '@/components/ui/badge/Badge';
+import { 
+  Users, 
+  FileText, 
+  DollarSign, 
+  TrendingUp, 
+  Briefcase, 
+  Clock,
+  CheckCircle,
+  AlertCircle
+} from 'lucide-react';
 
-const EmpresaDashboard = () => {
+interface DashboardStats {
+  totalProjects: number;
+  activeContracts: number;
+  totalPayments: number;
+  pendingApplications: number;
+  completedProjects: number;
+  totalRevenue: number;
+}
+
+export default function EmpresaDashboard() {
   const { user } = useAuth();
-  const { projects, getProjectsByCompany } = useProject();
-  const { contracts, getContractsByCompany } = useContract();
-  const { payments, getPaymentsByContract } = usePayment();
-  const { recommendations } = useAI();
-
+  const { getContractStats } = useContract();
+  const { getPaymentStats } = usePayment();
+  const [stats, setStats] = useState<DashboardStats>({
+    totalProjects: 0,
+    activeContracts: 0,
+    totalPayments: 0,
+    pendingApplications: 0,
+    completedProjects: 0,
+    totalRevenue: 0,
+  });
   const [loading, setLoading] = useState(true);
+  const [recentJobs, setRecentJobs] = useState<any[]>([]);
+  const [recentApplications, setRecentApplications] = useState<any[]>([]);
 
   useEffect(() => {
-    const loadData = async () => {
-      if (user?.id) {
-        await Promise.all([
-          getProjectsByCompany(user.id),
-          getContractsByCompany(user.id)
-        ]);
+    const loadDashboardData = async () => {
+      try {
+        setLoading(true);
+        
+        // Cargar estadísticas de trabajos
+        const jobStats = await jobsService.getJobStats();
+        
+        // Cargar estadísticas de contratos
+        const contractStats = await getContractStats();
+        
+        // Cargar estadísticas de pagos
+        const paymentStats = await getPaymentStats();
+        
+        // Cargar trabajos recientes
+        const jobs = await jobsService.getJobsByCompany();
+        setRecentJobs(jobs.slice(0, 5));
+        
+        // Cargar aplicaciones recientes (para todos los trabajos de la empresa)
+        const allApplications = await applicationsService.getAllApplications();
+        const companyApplications = allApplications.filter(app => 
+          jobs.some(job => job.id === app.jobId)
+        );
+        setRecentApplications(companyApplications.slice(0, 5));
+
+        // Combinar estadísticas
+        setStats({
+          totalProjects: jobStats?.totalJobs || 0,
+          activeContracts: contractStats?.activeContracts || 0,
+          totalPayments: paymentStats?.totalPayments || 0,
+          pendingApplications: companyApplications.filter(app => app.status === 'PENDING').length,
+          completedProjects: contractStats?.completedContracts || 0,
+          totalRevenue: paymentStats?.totalRevenue || 0,
+        });
+      } catch (error) {
+        console.error('Error loading dashboard data:', error);
+      } finally {
         setLoading(false);
       }
     };
 
-    loadData();
-  }, [user?.id]); // Removemos getProjectsByCompany y getContractsByCompany del array de dependencias
-
-  // Calcular métricas
-  const activeProjects = projects.filter(p => p.status === 'active');
-  const completedProjects = projects.filter(p => p.status === 'completed');
-  const activeContracts = contracts.filter(c => c.status === 'active');
-  const totalSpent = payments.reduce((sum, p) => sum + p.amount, 0);
-  const pendingPayments = payments.filter(p => p.status === 'pending');
-  const totalPending = pendingPayments.reduce((sum, p) => sum + p.amount, 0);
-
-  const metrics = [
-    {
-      title: "Proyectos Activos",
-      value: activeProjects.length.toString(),
-      change: "+2",
-      changeType: "positive" as const,
-    },
-    {
-      title: "Contratos Activos",
-      value: activeContracts.length.toString(),
-      change: "+1",
-      changeType: "positive" as const,
-    },
-    {
-      title: "Total Gastado",
-      value: `$${totalSpent.toLocaleString()}`,
-      change: "+15%",
-      changeType: "positive" as const,
-    },
-    {
-      title: "Pagos Pendientes",
-      value: `$${totalPending.toLocaleString()}`,
-      change: "3 pagos",
-      changeType: "neutral" as const,
+    if (user) {
+      loadDashboardData();
     }
-  ] as const;
-
-  // Proyectos recientes
-  const recentProjects = projects.slice(0, 5);
-
-  // Recomendaciones de IA
-  const aiRecommendations = recommendations.slice(0, 3);
+  }, [user, getContractStats, getPaymentStats]);
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-500"></div>
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+    <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-          ¡Hola, {user?.name}! 👋
-        </h1>
-        <p className="text-lg text-gray-600 dark:text-gray-400 mt-2">
-          Aquí tienes un resumen de tu actividad empresarial
-        </p>
-      </div>
-
-      {/* Métricas principales */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
-        {metrics.map((metric, index) => (
-          <div key={index} className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
-            <div className="flex items-end justify-between">
-              <div>
-                <span className="text-sm text-gray-500 dark:text-gray-400">{metric.title}</span>
-                <h4 className="mt-2 font-bold text-gray-800 text-title-sm dark:text-white/90">{metric.value}</h4>
-              </div>
-              <div className={`flex items-center text-sm ${
-                metric.changeType === 'positive' ? 'text-green-600' : 
-                metric.changeType === 'negative' ? 'text-red-600' : 'text-gray-600'
-              }`}>
-                {metric.changeType === 'positive' ? (
-                  <ArrowUpIcon className="h-4 w-4 mr-1" />
-                ) : metric.changeType === 'negative' ? (
-                  <ArrowDownIcon className="h-4 w-4 mr-1" />
-                ) : null}
-                {metric.change}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Contenido principal */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Proyectos recientes */}
-        <div className="lg:col-span-2">
-          <ComponentCard title="Proyectos Recientes" className="h-full">
-            <div className="space-y-4">
-              {recentProjects.length > 0 ? (
-                recentProjects.map((project) => (
-                  <div key={project.id} className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-gray-900 dark:text-white">{project.title}</h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                        {project.description.substring(0, 100)}...
-                      </p>
-                      <div className="flex items-center mt-2 space-x-4">
-                        <span className={`px-2 py-1 text-xs rounded-full ${
-                          project.status === 'active' ? 'bg-green-100 text-green-800' :
-                          project.status === 'completed' ? 'bg-blue-100 text-blue-800' :
-                          'bg-gray-100 text-gray-800'
-                        }`}>
-                          {project.status}
-                        </span>
-                        <span className="text-sm text-gray-500">
-                          ${project.budget.min.toLocaleString()} - ${project.budget.max.toLocaleString()}
-                        </span>
-                      </div>
-                    </div>
-                    <Link 
-                      href={`/empresa/proyectos/${project.id}`}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-                    >
-                      Ver
-                    </Link>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-8">
-                  <p className="text-gray-500 dark:text-gray-400">No hay proyectos aún</p>
-                  <Link 
-                    href="/empresa/proyectos/nuevo"
-                    className="mt-4 inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-                  >
-                    Crear Proyecto
-                  </Link>
-                </div>
-              )}
-            </div>
-          </ComponentCard>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Dashboard de Empresa</h1>
+          <p className="text-gray-600">Bienvenido de vuelta, {user?.name}</p>
         </div>
-
-        {/* Recomendaciones de IA */}
-        <div className="lg:col-span-1">
-          <ComponentCard title="Recomendaciones IA" className="h-full">
-            <div className="space-y-4">
-              {aiRecommendations.length > 0 ? (
-                aiRecommendations.map((recommendation) => (
-                  <div key={recommendation.id} className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
-                    <h4 className="font-semibold text-gray-900 dark:text-white">{recommendation.title}</h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                      {recommendation.description}
-                    </p>
-                    <div className="mt-2">
-                      <span className="text-xs text-gray-500">
-                        Confianza: {recommendation.confidence}%
-                      </span>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-8">
-                  <p className="text-gray-500 dark:text-gray-400">No hay recomendaciones disponibles</p>
-                </div>
-              )}
-            </div>
-          </ComponentCard>
-        </div>
+        <Button className="bg-blue-600 hover:bg-blue-700">
+          <Briefcase className="w-4 h-4 mr-2" />
+          Crear Nuevo Proyecto
+        </Button>
       </div>
 
-      {/* Acciones rápidas */}
-      <div className="mt-8">
-        <ComponentCard title="Acciones Rápidas">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Link 
-              href="/empresa/proyectos/nuevo"
-              className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition"
-            >
-              <h4 className="font-semibold text-gray-900 dark:text-white">Crear Proyecto</h4>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                Inicia un nuevo proyecto de outsourcing
-              </p>
-            </Link>
-            <Link 
-              href="/empresa/profesionales"
-              className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition"
-            >
-              <h4 className="font-semibold text-gray-900 dark:text-white">Buscar Profesionales</h4>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                Encuentra el talento que necesitas
-              </p>
-            </Link>
-            <Link 
-              href="/empresa/reportes"
-              className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition"
-            >
-              <h4 className="font-semibold text-gray-900 dark:text-white">Ver Reportes</h4>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                Analiza el rendimiento de tus proyectos
-              </p>
-            </Link>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card>
+          <div className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <h3 className="text-sm font-medium">Total Proyectos</h3>
+            <FileText className="h-4 w-4 text-muted-foreground" />
           </div>
-        </ComponentCard>
+          <div className="pt-2">
+            <div className="text-2xl font-bold">{stats.totalProjects}</div>
+            <p className="text-xs text-muted-foreground">
+              +12% desde el mes pasado
+            </p>
+          </div>
+        </Card>
+
+        <Card>
+          <div className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <h3 className="text-sm font-medium">Contratos Activos</h3>
+            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+          </div>
+          <div className="pt-2">
+            <div className="text-2xl font-bold">{stats.activeContracts}</div>
+            <p className="text-xs text-muted-foreground">
+              +5% desde el mes pasado
+            </p>
+          </div>
+        </Card>
+
+        <Card>
+          <div className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <h3 className="text-sm font-medium">Pagos Procesados</h3>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </div>
+          <div className="pt-2">
+            <div className="text-2xl font-bold">${stats.totalPayments.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">
+              +8% desde el mes pasado
+            </p>
+          </div>
+        </Card>
+
+        <Card>
+          <div className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <h3 className="text-sm font-medium">Aplicaciones Pendientes</h3>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </div>
+          <div className="pt-2">
+            <div className="text-2xl font-bold">{stats.pendingApplications}</div>
+            <p className="text-xs text-muted-foreground">
+              Requieren revisión
+            </p>
+          </div>
+        </Card>
       </div>
+
+      {/* Recent Activity */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Recent Jobs */}
+        <Card>
+          <div className="flex items-center mb-4">
+            <Briefcase className="w-5 h-5 mr-2" />
+            <h3 className="text-lg font-semibold">Trabajos Recientes</h3>
+          </div>
+          <div className="space-y-4">
+            {recentJobs.map((job) => (
+              <div key={job.id} className="flex items-center justify-between p-3 border rounded-lg">
+                <div>
+                  <h4 className="font-medium">{job.title}</h4>
+                  <p className="text-sm text-gray-600">${job.budget.min} - ${job.budget.max}</p>
+                </div>
+                <Badge color={job.status === 'ACTIVE' ? 'success' : 'light'}>
+                  {job.status}
+                </Badge>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        {/* Recent Applications */}
+        <Card>
+          <div className="flex items-center mb-4">
+            <Users className="w-5 h-5 mr-2" />
+            <h3 className="text-lg font-semibold">Aplicaciones Recientes</h3>
+          </div>
+          <div className="space-y-4">
+            {recentApplications.map((application) => (
+              <div key={application.id} className="flex items-center justify-between p-3 border rounded-lg">
+                <div>
+                  <h4 className="font-medium">{application.professionalName}</h4>
+                  <p className="text-sm text-gray-600">{application.jobTitle}</p>
+                </div>
+                <Badge color={application.status === 'PENDING' ? 'error' : 'success'}>
+                  {application.status}
+                </Badge>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+
+      {/* Quick Actions */}
+      <Card>
+        <h3 className="text-lg font-semibold mb-4">Acciones Rápidas</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Button variant="outline" className="h-20 flex flex-col">
+            <Briefcase className="w-6 h-6 mb-2" />
+            Crear Trabajo
+          </Button>
+          <Button variant="outline" className="h-20 flex flex-col">
+            <FileText className="w-6 h-6 mb-2" />
+            Ver Contratos
+          </Button>
+          <Button variant="outline" className="h-20 flex flex-col">
+            <DollarSign className="w-6 h-6 mb-2" />
+            Gestionar Pagos
+          </Button>
+        </div>
+      </Card>
     </div>
   );
-};
-
-export default EmpresaDashboard; 
+} 

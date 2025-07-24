@@ -1,6 +1,6 @@
 "use client";
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { notificationService } from '@/services/supabase';
+import { notificationsService } from '@/services/notifications.service';
 import { Notification } from '@/types';
 import { useAuth } from './AuthContext';
 
@@ -32,7 +32,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       setLoading(true);
       setError(null);
 
-      const userNotifications = await notificationService.getNotificationsByUser(user.id);
+      const userNotifications = await notificationsService.getNotificationsByUser(user.id);
       setNotifications(userNotifications);
     } catch (error) {
       const message = 'Error al obtener notificaciones';
@@ -47,7 +47,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       setLoading(true);
       setError(null);
 
-      await notificationService.markAsRead(id);
+      await notificationsService.markAsRead(id);
 
       // Actualizar estado local
       setNotifications(prev => prev.map(notification =>
@@ -64,16 +64,13 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   };
 
   const markAllAsRead = async (): Promise<void> => {
+    if (!user?.id) return;
+
     try {
       setLoading(true);
       setError(null);
 
-      // Marcar todas las notificaciones no leídas como leídas
-      const unreadNotifications = notifications.filter(n => !n.is_read);
-      
-      for (const notification of unreadNotifications) {
-        await notificationService.markAsRead(notification.id);
-      }
+      await notificationsService.markAllAsRead(user.id);
 
       // Actualizar estado local
       setNotifications(prev => prev.map(notification => ({
@@ -93,7 +90,14 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       setLoading(true);
       setError(null);
 
-      const notificationId = await notificationService.createNotification(notificationData);
+      const notificationId = await notificationsService.createNotification({
+        user_id: notificationData.user_id,
+        title: notificationData.title,
+        message: notificationData.message,
+        type: notificationData.type,
+        is_read: notificationData.is_read || false,
+        data: notificationData.data,
+      });
 
       // Actualizar estado local
       const newNotification: Notification = {

@@ -1,275 +1,215 @@
 "use client";
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { paymentService } from '@/services/supabase';
-import { Payment, PaymentMethod, Invoice, InvoiceItem } from '@/types';
-
-export interface TaxDeduction {
-  name: string;
-  type: 'income_tax' | 'social_security' | 'health_insurance' | 'other';
-  rate: number; // porcentaje
-  amount: number;
-  jurisdiction: string;
-}
-
-export interface PayrollBatch {
-  id: string;
-  name: string;
-  scheduled_date: string;
-  payments: string[]; // IDs de pagos
-  status: 'scheduled' | 'processing' | 'completed' | 'failed';
-  total_amount: number;
-  currency: string;
-  created_at: string;
-  processed_at?: string;
-}
+import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import { paymentsService, Payment, CreatePaymentData, UpdatePaymentData } from '@/services/payments.service';
 
 interface PaymentContextType {
   payments: Payment[];
-  payrollBatches: PayrollBatch[];
-  createPayment: (payment: Omit<Payment, 'id' | 'created_at'>) => Promise<{ success: boolean; message: string; paymentId?: string }>;
-  updatePaymentStatus: (id: string, status: Payment['status']) => Promise<{ success: boolean; message: string }>;
-  processPayment: (id: string) => Promise<{ success: boolean; message: string }>;
-  createPayrollBatch: (batch: Omit<PayrollBatch, 'id' | 'created_at' | 'status'>) => Promise<{ success: boolean; message: string }>;
-  processPayrollBatch: (batchId: string) => Promise<{ success: boolean; message: string }>;
-  calculateTaxes: (amount: number, jurisdiction: string) => TaxDeduction[];
-  getPaymentsByProfessional: (professionalId: string) => Promise<Payment[]>;
+  currentPayment: Payment | null;
+  loading: boolean;
+  error: string | null;
+  createPayment: (paymentData: CreatePaymentData) => Promise<{ success: boolean; message: string; paymentId?: string }>;
+  updatePayment: (id: string, paymentData: UpdatePaymentData) => Promise<{ success: boolean; message: string }>;
+  getPaymentById: (id: string) => Promise<Payment | null>;
+  getPaymentsByProfessional: () => Promise<Payment[]>;
+  getPaymentsByCompany: () => Promise<Payment[]>;
   getPaymentsByContract: (contractId: string) => Promise<Payment[]>;
-  generateInvoice: (paymentId: string) => Invoice;
-  schedulePayment: (paymentId: string, date: string) => Promise<{ success: boolean; message: string }>;
+  getProfessionalPaymentStats: () => Promise<any>;
+  getPaymentStats: () => Promise<any>;
+  updatePaymentStatus: (id: string, status: string) => Promise<{ success: boolean; message: string }>;
 }
 
 const PaymentContext = createContext<PaymentContextType | undefined>(undefined);
 
-// Configuración de impuestos por jurisdicción
-const TAX_CONFIGURATIONS: Record<string, TaxDeduction[]> = {
-  'US': [
-    { name: 'Federal Income Tax', type: 'income_tax', rate: 22, amount: 0, jurisdiction: 'US' },
-    { name: 'Social Security', type: 'social_security', rate: 6.2, amount: 0, jurisdiction: 'US' },
-    { name: 'Medicare', type: 'health_insurance', rate: 1.45, amount: 0, jurisdiction: 'US' }
-  ],
-  'ES': [
-    { name: 'IRPF', type: 'income_tax', rate: 19, amount: 0, jurisdiction: 'ES' },
-    { name: 'Seguridad Social', type: 'social_security', rate: 6.35, amount: 0, jurisdiction: 'ES' }
-  ],
-  'MX': [
-    { name: 'ISR', type: 'income_tax', rate: 15, amount: 0, jurisdiction: 'MX' },
-    { name: 'IMSS', type: 'social_security', rate: 5, amount: 0, jurisdiction: 'MX' }
-  ]
-};
-
 export const PaymentProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [payments, setPayments] = useState<Payment[]>([]);
-  const [payrollBatches, setPayrollBatches] = useState<PayrollBatch[]>([]);
+  const [currentPayment, setCurrentPayment] = useState<Payment | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function calculateTaxes(amount: number, jurisdiction: string): TaxDeduction[] {
-    const config = TAX_CONFIGURATIONS[jurisdiction] || TAX_CONFIGURATIONS['US'];
-    return config.map(tax => ({
-      ...tax,
-      amount: (amount * tax.rate) / 100
-    }));
-  }
-
-  const createPayment = async (paymentData: Omit<Payment, 'id' | 'created_at'>): Promise<{ success: boolean; message: string; paymentId?: string }> => {
+  const createPayment = useCallback(async (paymentData: CreatePaymentData): Promise<{ success: boolean; message: string; paymentId?: string }> => {
     try {
-      const paymentId = await paymentService.createPayment(paymentData);
+      setLoading(true);
+      setError(null);
       
-      // Actualizar estado local
-      const newPayment: Payment = {
-        id: paymentId,
-        ...paymentData,
-        created_at: new Date().toISOString()
-      };
+      const newPayment = await paymentsService.createPayment(paymentData);
       
       setPayments(prev => [newPayment, ...prev]);
       
-      return { success: true, message: 'Pago creado exitosamente', paymentId };
-    } catch (error) {
-      console.error('Error creating payment:', error);
-      return { success: false, message: 'Error al crear pago' };
+      return { success: true, message: 'Pago creado exitosamente', paymentId: newPayment.id };
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Error al crear pago';
+      setError(message);
+      return { success: false, message };
+    } finally {
+      setLoading(false);
     }
-  };
+  }, []);
 
-  const updatePaymentStatus = async (id: string, status: Payment['status']): Promise<{ success: boolean; message: string }> => {
+  const updatePayment = useCallback(async (id: string, paymentData: UpdatePaymentData): Promise<{ success: boolean; message: string }> => {
     try {
-      await paymentService.updatePaymentStatus(id, status);
+      setLoading(true);
+      setError(null);
+      
+      const updatedPayment = await paymentsService.updatePayment(id, paymentData);
       
       // Actualizar estado local
       setPayments(prev => prev.map(payment => 
-        payment.id === id 
-          ? { 
-              ...payment, 
-              status,
-              processed_date: status === 'completed' ? new Date().toISOString() : payment.processed_date
-            }
-          : payment
+        payment.id === id ? updatedPayment : payment
       ));
       
-      return { success: true, message: 'Estado del pago actualizado exitosamente' };
-    } catch (error) {
-      console.error('Error updating payment status:', error);
-      return { success: false, message: 'Error al actualizar estado del pago' };
-    }
-  };
-
-  const processPayment = async (id: string): Promise<{ success: boolean; message: string }> => {
-    try {
-      const payment = payments.find(p => p.id === id);
-      if (!payment) {
-        return { success: false, message: 'Pago no encontrado' };
+      if (currentPayment?.id === id) {
+        setCurrentPayment(updatedPayment);
       }
-
-      // Simular procesamiento de pago
-      await new Promise(resolve => setTimeout(resolve, 2000));
       
-      await updatePaymentStatus(id, 'completed');
-      
-      return { success: true, message: 'Pago procesado exitosamente' };
-    } catch (error) {
-      console.error('Error processing payment:', error);
-      return { success: false, message: 'Error al procesar pago' };
+      return { success: true, message: 'Pago actualizado exitosamente' };
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Error al actualizar pago';
+      setError(message);
+      return { success: false, message };
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [currentPayment?.id]);
 
-  const createPayrollBatch = async (batchData: Omit<PayrollBatch, 'id' | 'created_at' | 'status'>): Promise<{ success: boolean; message: string }> => {
+  const getPaymentById = useCallback(async (id: string): Promise<Payment | null> => {
     try {
-      const newBatch: PayrollBatch = {
-        id: Date.now().toString(),
-        ...batchData,
-        status: 'scheduled',
-        created_at: new Date().toISOString()
-      };
+      setLoading(true);
+      setError(null);
       
-      setPayrollBatches(prev => [newBatch, ...prev]);
+      const payment = await paymentsService.getPaymentById(id);
+      setCurrentPayment(payment);
+      return payment;
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Error al obtener pago';
+      setError(message);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const getPaymentsByProfessional = useCallback(async (): Promise<Payment[]> => {
+    try {
+      setLoading(true);
+      setError(null);
       
-      return { success: true, message: 'Lote de nómina creado exitosamente' };
-    } catch (error) {
-      console.error('Error creating payroll batch:', error);
-      return { success: false, message: 'Error al crear lote de nómina' };
-    }
-  };
-
-  const processPayrollBatch = async (batchId: string): Promise<{ success: boolean; message: string }> => {
-    try {
-      const batch = payrollBatches.find(b => b.id === batchId);
-      if (!batch) {
-        return { success: false, message: 'Lote de nómina no encontrado' };
-      }
-
-      // Actualizar estado del lote
-      setPayrollBatches(prev => prev.map(b => 
-        b.id === batchId 
-          ? { ...b, status: 'processing' }
-          : b
-      ));
-
-      // Simular procesamiento
-      await new Promise(resolve => setTimeout(resolve, 3000));
-
-      // Procesar cada pago en el lote
-      for (const paymentId of batch.payments) {
-        await processPayment(paymentId);
-      }
-
-      // Marcar como completado
-      setPayrollBatches(prev => prev.map(b => 
-        b.id === batchId 
-          ? { 
-              ...b, 
-              status: 'completed',
-              processed_at: new Date().toISOString()
-            }
-          : b
-      ));
-
-      return { success: true, message: 'Lote de nómina procesado exitosamente' };
-    } catch (error) {
-      console.error('Error processing payroll batch:', error);
-      return { success: false, message: 'Error al procesar lote de nómina' };
-    }
-  };
-
-  const getPaymentsByProfessional = async (professionalId: string): Promise<Payment[]> => {
-    try {
-      const professionalPayments = await paymentService.getPaymentsByProfessional(professionalId);
+      const professionalPayments = await paymentsService.getPaymentsByProfessional();
+      setPayments(professionalPayments);
       return professionalPayments;
-    } catch (error) {
-      console.error('Error getting payments by professional:', error);
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Error al obtener pagos del profesional';
+      setError(message);
       return [];
+    } finally {
+      setLoading(false);
     }
-  };
+  }, []);
 
-  const getPaymentsByContract = async (contractId: string): Promise<Payment[]> => {
+  const getPaymentsByCompany = useCallback(async (): Promise<Payment[]> => {
     try {
-      const contractPayments = await paymentService.getPaymentsByContract(contractId);
+      setLoading(true);
+      setError(null);
+      
+      const companyPayments = await paymentsService.getPaymentsByCompany();
+      setPayments(companyPayments);
+      return companyPayments;
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Error al obtener pagos de la empresa';
+      setError(message);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const getPaymentsByContract = useCallback(async (contractId: string): Promise<Payment[]> => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const contractPayments = await paymentsService.getPaymentsByContract(contractId);
       return contractPayments;
-    } catch (error) {
-      console.error('Error getting payments by contract:', error);
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Error al obtener pagos del contrato';
+      setError(message);
       return [];
+    } finally {
+      setLoading(false);
     }
-  };
+  }, []);
 
-  const generateInvoice = (paymentId: string): Invoice => {
-    const payment = payments.find(p => p.id === paymentId);
-    if (!payment) {
-      throw new Error('Pago no encontrado');
-    }
-
-    const invoice: Invoice = {
-      id: `INV-${paymentId}`,
-      number: `INV-${Date.now()}`,
-      date: new Date().toISOString(),
-      due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 días
-      items: [
-        {
-          description: payment.description,
-          quantity: 1,
-          rate: payment.amount,
-          amount: payment.amount
-        }
-      ],
-      total: payment.amount,
-      status: 'draft'
-    };
-
-    return invoice;
-  };
-
-  const schedulePayment = async (paymentId: string, date: string): Promise<{ success: boolean; message: string }> => {
+  const getProfessionalPaymentStats = useCallback(async (): Promise<any> => {
     try {
-      const payment = payments.find(p => p.id === paymentId);
-      if (!payment) {
-        return { success: false, message: 'Pago no encontrado' };
-      }
+      setLoading(true);
+      setError(null);
+      
+      const stats = await paymentsService.getProfessionalPaymentStats();
+      return stats;
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Error al obtener estadísticas de pagos';
+      setError(message);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-      await paymentService.updatePaymentStatus(paymentId, 'pending');
+  const getPaymentStats = useCallback(async (): Promise<any> => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const stats = await paymentsService.getPaymentStats();
+      return stats;
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Error al obtener estadísticas de pagos';
+      setError(message);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const updatePaymentStatus = useCallback(async (id: string, status: string): Promise<{ success: boolean; message: string }> => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const updatedPayment = await paymentsService.updatePaymentStatus(id, status);
       
       // Actualizar estado local
-      setPayments(prev => prev.map(p => 
-        p.id === paymentId 
-          ? { ...p, scheduled_date: date, status: 'pending' }
-          : p
+      setPayments(prev => prev.map(payment => 
+        payment.id === id ? updatedPayment : payment
       ));
       
-      return { success: true, message: 'Pago programado exitosamente' };
-    } catch (error) {
-      console.error('Error scheduling payment:', error);
-      return { success: false, message: 'Error al programar pago' };
+      if (currentPayment?.id === id) {
+        setCurrentPayment(updatedPayment);
+      }
+      
+      return { success: true, message: 'Estado del pago actualizado exitosamente' };
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Error al actualizar estado del pago';
+      setError(message);
+      return { success: false, message };
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [currentPayment?.id]);
 
   const value: PaymentContextType = {
     payments,
-    payrollBatches,
+    currentPayment,
+    loading,
+    error,
     createPayment,
-    updatePaymentStatus,
-    processPayment,
-    createPayrollBatch,
-    processPayrollBatch,
-    calculateTaxes,
+    updatePayment,
+    getPaymentById,
     getPaymentsByProfessional,
+    getPaymentsByCompany,
     getPaymentsByContract,
-    generateInvoice,
-    schedulePayment
+    getProfessionalPaymentStats,
+    getPaymentStats,
+    updatePaymentStatus,
   };
 
   return (

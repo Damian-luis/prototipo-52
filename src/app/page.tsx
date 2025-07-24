@@ -22,7 +22,7 @@ export default function Home() {
           router.push('/empresa');
           break;
         case 'profesional':
-          router.push('/freelancer');
+          router.push('/profesional');
           break;
         case 'especialista':
           router.push('/especialista');
@@ -92,18 +92,6 @@ export function LandingPage() {
                   Registrarse Gratis
                 </button>
               </Link>
-            </div>
-
-            {/* Hero Image */}
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-primary-500/20 to-secondary-500/20 rounded-3xl blur-3xl"></div>
-              <div className="relative bg-white dark:bg-gray-800 rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden">
-                <img 
-                  src="/images/grid-image/image-01.png" 
-                  alt="Dashboard Outsourcing" 
-                  className="w-full h-auto"
-                />
-              </div>
             </div>
           </div>
         </section>

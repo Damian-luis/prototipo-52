@@ -1,199 +1,222 @@
 "use client";
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
-import { contractService } from '@/services/supabase';
-import { Contract, Milestone, Signature } from '@/types';
+import { contractsService, Contract, CreateContractData, UpdateContractData } from '@/services/contracts.service';
 
 interface ContractContextType {
   contracts: Contract[];
-  createContract: (contract: Omit<Contract, 'id' | 'created_at' | 'updated_at'>) => Promise<{ success: boolean; message: string; contractId?: string }>;
-  updateContract: (id: string, contract: Partial<Contract>) => Promise<{ success: boolean; message: string }>;
-  signContract: (
-    contractId: string,
-    userId: string,
-    userName: string,
-    role: 'company' | 'professional',
-    blockchainSignature?: { wallet: string; signature: string; contractHash: string }
-  ) => Promise<{ success: boolean; message: string }>;
-  getContractsByProfessional: (professionalId: string) => Promise<Contract[]>;
-  getContractsByCompany: (companyId: string) => Promise<Contract[]>;
+  currentContract: Contract | null;
+  loading: boolean;
+  error: string | null;
+  createContract: (contractData: CreateContractData) => Promise<{ success: boolean; message: string; contractId?: string }>;
+  updateContract: (id: string, contractData: UpdateContractData) => Promise<{ success: boolean; message: string }>;
+  deleteContract: (id: string) => Promise<{ success: boolean; message: string }>;
   getContractById: (id: string) => Promise<Contract | null>;
-  generateBlockchainHash: (contract: Contract) => string;
-  updateMilestoneStatus: (contractId: string, milestoneId: string, status: Milestone['status']) => Promise<{ success: boolean; message: string }>;
+  getContractsByProfessional: () => Promise<Contract[]>;
+  getContractsByCompany: () => Promise<Contract[]>;
+  getProfessionalContractStats: () => Promise<any>;
+  getContractStats: () => Promise<any>;
+  updateContractStatus: (id: string, status: string) => Promise<{ success: boolean; message: string }>;
 }
 
 const ContractContext = createContext<ContractContextType | undefined>(undefined);
 
 export const ContractProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [contracts, setContracts] = useState<Contract[]>([]);
+  const [currentContract, setCurrentContract] = useState<Contract | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const createContract = useCallback(async (contract: Omit<Contract, 'id' | 'created_at' | 'updated_at'>): Promise<{ success: boolean; message: string; contractId?: string }> => {
+  const createContract = useCallback(async (contractData: CreateContractData): Promise<{ success: boolean; message: string; contractId?: string }> => {
     try {
-      const contractId = await contractService.createContract(contract);
+      setLoading(true);
+      setError(null);
       
-      // Crear el objeto del contrato para el estado local
-      const newContract: Contract = {
-        id: contractId,
-        ...contract,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
+      const newContract = await contractsService.createContract(contractData);
       
       setContracts(prev => [newContract, ...prev]);
       
-      return { success: true, message: 'Contrato creado exitosamente', contractId };
-    } catch (error) {
-      console.error('Error creating contract:', error);
-      return { success: false, message: 'Error al crear contrato' };
+      return { success: true, message: 'Contrato creado exitosamente', contractId: newContract.id };
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Error al crear contrato';
+      setError(message);
+      return { success: false, message };
+    } finally {
+      setLoading(false);
     }
   }, []);
 
-  const updateContract = useCallback(async (id: string, contract: Partial<Contract>): Promise<{ success: boolean; message: string }> => {
+  const updateContract = useCallback(async (id: string, contractData: UpdateContractData): Promise<{ success: boolean; message: string }> => {
     try {
-      await contractService.updateContract(id, contract);
+      setLoading(true);
+      setError(null);
       
-      // Actualizar estado local
-      setContracts(prev => prev.map(c => 
-        c.id === id 
-          ? { ...c, ...contract, updated_at: new Date().toISOString() }
-          : c
-      ));
-      
-      return { success: true, message: 'Contrato actualizado exitosamente' };
-    } catch (error) {
-      console.error('Error updating contract:', error);
-      return { success: false, message: 'Error al actualizar contrato' };
-    }
-  }, []);
-
-  const signContract = useCallback(async (
-    contractId: string,
-    userId: string,
-    userName: string,
-    role: 'company' | 'professional',
-    blockchainSignature?: { wallet: string; signature: string; contractHash: string }
-  ): Promise<{ success: boolean; message: string }> => {
-    try {
-      const signature: Signature = {
-        user_id: userId,
-        user_name: userName,
-        role,
-        signed_at: new Date().toISOString(),
-        ip_address: '',
-        signature: blockchainSignature?.signature || '',
-        wallet: blockchainSignature?.wallet || ''
-      };
-
-      await contractService.signContract(contractId, signature);
-      
-      // Actualizar estado local
-      setContracts(prev => prev.map(contract => {
-        if (contract.id === contractId) {
-          const updatedSignatures = [...contract.signatures, signature];
-          const newStatus = updatedSignatures.length >= 2 ? 'active' : 'pending';
-          return {
-            ...contract,
-            signatures: updatedSignatures,
-            status: newStatus,
-            updated_at: new Date().toISOString()
-          };
-        }
-        return contract;
-      }));
-      
-      return { success: true, message: 'Contrato firmado exitosamente' };
-    } catch (error) {
-      console.error('Error signing contract:', error);
-      return { success: false, message: 'Error al firmar contrato' };
-    }
-  }, []);
-
-  const generateBlockchainHash = useCallback((contract: Contract): string => {
-    const contractData = {
-      id: contract.id,
-      projectId: contract.project_id,
-      companyId: contract.company_id,
-      professionalId: contract.professional_id,
-      value: contract.value,
-      startDate: contract.start_date,
-      endDate: contract.end_date
-    };
-    
-    return btoa(JSON.stringify(contractData));
-  }, []);
-
-  const updateMilestoneStatus = useCallback(async (contractId: string, milestoneId: string, status: Milestone['status']): Promise<{ success: boolean; message: string }> => {
-    try {
-      const contract = contracts.find(c => c.id === contractId);
-      if (!contract) {
-        return { success: false, message: 'Contrato no encontrado' };
-      }
-      
-      const updatedMilestones = contract.milestones?.map(milestone => 
-        milestone.id === milestoneId 
-          ? { 
-              ...milestone, 
-              status,
-              completed_date: status === 'completed' ? new Date().toISOString() : undefined
-            }
-          : milestone
-      );
-      
-      await contractService.updateContract(contractId, { milestones: updatedMilestones });
+      const updatedContract = await contractsService.updateContract(id, contractData);
       
       // Actualizar estado local
       setContracts(prev => prev.map(contract => 
-        contract.id === contractId 
-          ? { ...contract, milestones: updatedMilestones, updated_at: new Date().toISOString() }
-          : contract
+        contract.id === id ? updatedContract : contract
       ));
       
-      return { success: true, message: 'Estado del hito actualizado exitosamente' };
-    } catch (error) {
-      console.error('Error updating milestone status:', error);
-      return { success: false, message: 'Error al actualizar estado del hito' };
+      if (currentContract?.id === id) {
+        setCurrentContract(updatedContract);
+      }
+      
+      return { success: true, message: 'Contrato actualizado exitosamente' };
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Error al actualizar contrato';
+      setError(message);
+      return { success: false, message };
+    } finally {
+      setLoading(false);
     }
-  }, [contracts]);
+  }, [currentContract?.id]);
 
-  const getContractsByProfessional = useCallback(async (professionalId: string): Promise<Contract[]> => {
+  const deleteContract = useCallback(async (id: string): Promise<{ success: boolean; message: string }> => {
     try {
-      const professionalContracts = await contractService.getContractsByProfessional(professionalId);
-      return professionalContracts;
-    } catch (error) {
-      console.error('Error getting contracts by professional:', error);
-      return [];
+      setLoading(true);
+      setError(null);
+      
+      await contractsService.deleteContract(id);
+      
+      setContracts(prev => prev.filter(contract => contract.id !== id));
+      
+      if (currentContract?.id === id) {
+        setCurrentContract(null);
+      }
+      
+      return { success: true, message: 'Contrato eliminado exitosamente' };
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Error al eliminar contrato';
+      setError(message);
+      return { success: false, message };
+    } finally {
+      setLoading(false);
     }
-  }, []);
-
-  const getContractsByCompany = useCallback(async (companyId: string): Promise<Contract[]> => {
-    try {
-      const companyContracts = await contractService.getContractsByCompany(companyId);
-      return companyContracts;
-    } catch (error) {
-      console.error('Error getting contracts by company:', error);
-      return [];
-    }
-  }, []);
+  }, [currentContract?.id]);
 
   const getContractById = useCallback(async (id: string): Promise<Contract | null> => {
     try {
-      const contract = await contractService.getContractById(id);
+      setLoading(true);
+      setError(null);
+      
+      const contract = await contractsService.getContractById(id);
+      setCurrentContract(contract);
       return contract;
-    } catch (error) {
-      console.error('Error getting contract by id:', error);
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Error al obtener contrato';
+      setError(message);
       return null;
+    } finally {
+      setLoading(false);
     }
   }, []);
 
+  const getContractsByProfessional = useCallback(async (): Promise<Contract[]> => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const professionalContracts = await contractsService.getContractsByProfessional();
+      setContracts(professionalContracts);
+      return professionalContracts;
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Error al obtener contratos del profesional';
+      setError(message);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const getContractsByCompany = useCallback(async (): Promise<Contract[]> => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const companyContracts = await contractsService.getContractsByCompany();
+      setContracts(companyContracts);
+      return companyContracts;
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Error al obtener contratos de la empresa';
+      setError(message);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const getProfessionalContractStats = useCallback(async (): Promise<any> => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const stats = await contractsService.getProfessionalContractStats();
+      return stats;
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Error al obtener estadísticas de contratos';
+      setError(message);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const getContractStats = useCallback(async (): Promise<any> => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const stats = await contractsService.getContractStats();
+      return stats;
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Error al obtener estadísticas de contratos';
+      setError(message);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const updateContractStatus = useCallback(async (id: string, status: string): Promise<{ success: boolean; message: string }> => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const updatedContract = await contractsService.updateContractStatus(id, status);
+      
+      // Actualizar estado local
+      setContracts(prev => prev.map(contract => 
+        contract.id === id ? updatedContract : contract
+      ));
+      
+      if (currentContract?.id === id) {
+        setCurrentContract(updatedContract);
+      }
+      
+      return { success: true, message: 'Estado del contrato actualizado exitosamente' };
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Error al actualizar estado del contrato';
+      setError(message);
+      return { success: false, message };
+    } finally {
+      setLoading(false);
+    }
+  }, [currentContract?.id]);
+
   const value: ContractContextType = {
     contracts,
+    currentContract,
+    loading,
+    error,
     createContract,
     updateContract,
-    signContract,
+    deleteContract,
+    getContractById,
     getContractsByProfessional,
     getContractsByCompany,
-    getContractById,
-    generateBlockchainHash,
-    updateMilestoneStatus
+    getProfessionalContractStats,
+    getContractStats,
+    updateContractStatus,
   };
 
   return (

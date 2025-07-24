@@ -1,5 +1,5 @@
 // Tipos de usuario
-export type UserRole = 'admin' | 'empresa' | 'profesional' | 'especialista';
+export type UserRole = 'PROFESIONAL' | 'EMPRESA' | 'ESPECIALISTA' | 'ADMIN';
 
 export interface User {
   id: string;
@@ -18,7 +18,7 @@ export interface User {
 
 // Tipos específicos por rol
 export interface Empresa extends User {
-  role: 'empresa';
+  role: 'EMPRESA';
   company_name: string;
   industry: string;
   company_size: 'small' | 'medium' | 'large';
@@ -29,7 +29,7 @@ export interface Empresa extends User {
 }
 
 export interface Profesional extends User {
-  role: 'profesional';
+  role: 'PROFESIONAL';
   skills: string[];
   experience: number; // años
   hourly_rate: number;
@@ -44,7 +44,7 @@ export interface Profesional extends User {
 }
 
 export interface Especialista extends User {
-  role: 'especialista';
+  role: 'ESPECIALISTA';
   specialization: string;
   expertise: string[];
   hourly_rate: number;
