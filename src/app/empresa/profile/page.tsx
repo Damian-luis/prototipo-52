@@ -6,7 +6,7 @@ import Input from "@/components/ui/input/Input";
 import AvatarUpload from "@/components/ui/avatar/AvatarUpload";
 import { useAuth } from "@/context/AuthContext";
 
-export default function ProfesionalProfilePage() {
+export default function EmpresaProfilePage() {
   const { user } = useAuth();
   const [selectedAvatar, setSelectedAvatar] = useState<File | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -38,18 +38,18 @@ export default function ProfesionalProfilePage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-          Mi Perfil
+          Perfil de Empresa
         </h1>
         <p className="text-gray-600 dark:text-gray-400">
-          Gestiona tu información personal y configuración de cuenta
+          Gestiona la información de tu empresa y configuración de cuenta
         </p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Avatar y Foto de Perfil */}
+        {/* Avatar y Logo de Empresa */}
         <Card className="p-6">
           <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
-            Foto de Perfil
+            Logo de Empresa
           </h2>
           <AvatarUpload
             currentAvatar={user?.profile_picture}
@@ -60,45 +60,56 @@ export default function ProfesionalProfilePage() {
           />
         </Card>
 
-        {/* Información Personal */}
+        {/* Información de Empresa */}
         <Card className="p-6 lg:col-span-2">
           <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
-            Información Personal
+            Información de Empresa
           </h2>
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Nombre Completo
+                Nombre de la Empresa
               </label>
               <Input
                 type="text"
                 defaultValue={user?.name || ""}
                 className="mt-1"
-                placeholder="Tu nombre completo"
+                placeholder="Nombre de tu empresa"
                 disabled={isUpdating}
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Email
+                Email Corporativo
               </label>
               <Input
                 type="email"
                 defaultValue={user?.email || ""}
                 className="mt-1"
-                placeholder="tu@email.com"
+                placeholder="empresa@email.com"
                 disabled
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Rol
+                Tipo de Empresa
               </label>
               <Input
                 type="text"
-                defaultValue="Profesional"
+                defaultValue="Empresa"
                 className="mt-1"
                 disabled
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Sitio Web
+              </label>
+              <Input
+                type="url"
+                className="mt-1"
+                placeholder="https://tuempresa.com"
+                disabled={isUpdating}
               />
             </div>
             <Button 
@@ -164,23 +175,23 @@ export default function ProfesionalProfilePage() {
         {/* Estadísticas */}
         <Card className="p-6">
           <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
-            Estadísticas del Profesional
+            Estadísticas de Empresa
           </h2>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="rounded-lg bg-blue-50 p-4 dark:bg-blue-900/20">
-              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">15</div>
-              <div className="text-sm text-blue-600 dark:text-blue-400">Trabajos Completados</div>
+              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">32</div>
+              <div className="text-sm text-blue-600 dark:text-blue-400">Proyectos Completados</div>
             </div>
             <div className="rounded-lg bg-green-50 p-4 dark:bg-green-900/20">
-              <div className="text-2xl font-bold text-green-600 dark:text-green-400">8</div>
-              <div className="text-sm text-green-600 dark:text-green-400">Contratos Activos</div>
+              <div className="text-2xl font-bold text-green-600 dark:text-green-400">12</div>
+              <div className="text-sm text-green-600 dark:text-green-400">Profesionales Activos</div>
             </div>
             <div className="rounded-lg bg-purple-50 p-4 dark:bg-purple-900/20">
-              <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">$2,450</div>
-              <div className="text-sm text-purple-600 dark:text-purple-400">Ingresos Totales</div>
+              <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">$15,200</div>
+              <div className="text-sm text-purple-600 dark:text-purple-400">Inversión Total</div>
             </div>
             <div className="rounded-lg bg-orange-50 p-4 dark:bg-orange-900/20">
-              <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">4.9</div>
+              <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">4.7</div>
               <div className="text-sm text-orange-600 dark:text-orange-400">Calificación Promedio</div>
             </div>
           </div>

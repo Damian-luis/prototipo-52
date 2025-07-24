@@ -28,16 +28,16 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({
     if (requiredRole && user?.role !== requiredRole) {
       // Redirigir según el rol del usuario
       switch (user?.role) {
-        case 'admin':
+        case 'ADMIN':
           router.push('/admin');
           break;
-        case 'empresa':
+        case 'EMPRESA':
           router.push('/empresa');
           break;
-        case 'profesional':
+        case 'PROFESIONAL':
           router.push('/profesional');
           break;
-        case 'especialista':
+        case 'ESPECIALISTA':
           router.push('/especialista');
           break;
         default:

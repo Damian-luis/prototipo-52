@@ -2,9 +2,18 @@ import api from '@/util/axios';
 import { User } from '@/types';
 
 export interface GoogleAuthResponse {
-  user: User;
   access_token: string;
-  refresh_token: string;
+  user: {
+    id: string;
+    email: string;
+    fullName: string;
+    accountStatus: string;
+    createdAt?: string;
+    avatar?: string;
+    isGoogleUser?: boolean;
+    role: 'PROFESIONAL' | 'EMPRESA' | 'ESPECIALISTA' | 'ADMIN';
+  };
+  refresh_token?: string;
 }
 
 export interface GoogleUserData {

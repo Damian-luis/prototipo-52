@@ -54,11 +54,22 @@ export default function SignUpForm() {
       });
 
       if (result.success) {
-        if (form.role === "PROFESIONAL") {
-          router.push("/signup/complete-profile");
-        } else {
-          router.push("/signin");
-        }
+        // Redirigir directamente al dashboard según el rol
+        setTimeout(() => {
+          switch (form.role) {
+            case "PROFESIONAL":
+              router.push("/profesional");
+              break;
+            case "EMPRESA":
+              router.push("/empresa");
+              break;
+            case "ESPECIALISTA":
+              router.push("/especialista");
+              break;
+            default:
+              router.push("/");
+          }
+        }, 100);
       } else {
         setError(result.message);
       }

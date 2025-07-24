@@ -6,7 +6,7 @@ import Input from "@/components/ui/input/Input";
 import AvatarUpload from "@/components/ui/avatar/AvatarUpload";
 import { useAuth } from "@/context/AuthContext";
 
-export default function ProfesionalProfilePage() {
+export default function EspecialistaProfilePage() {
   const { user } = useAuth();
   const [selectedAvatar, setSelectedAvatar] = useState<File | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -96,7 +96,7 @@ export default function ProfesionalProfilePage() {
               </label>
               <Input
                 type="text"
-                defaultValue="Profesional"
+                defaultValue="Especialista"
                 className="mt-1"
                 disabled
               />
@@ -164,23 +164,23 @@ export default function ProfesionalProfilePage() {
         {/* Estadísticas */}
         <Card className="p-6">
           <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
-            Estadísticas del Profesional
+            Estadísticas del Especialista
           </h2>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="rounded-lg bg-blue-50 p-4 dark:bg-blue-900/20">
-              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">15</div>
-              <div className="text-sm text-blue-600 dark:text-blue-400">Trabajos Completados</div>
+              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">24</div>
+              <div className="text-sm text-blue-600 dark:text-blue-400">Consultas Realizadas</div>
             </div>
             <div className="rounded-lg bg-green-50 p-4 dark:bg-green-900/20">
-              <div className="text-2xl font-bold text-green-600 dark:text-green-400">8</div>
-              <div className="text-sm text-green-600 dark:text-green-400">Contratos Activos</div>
+              <div className="text-2xl font-bold text-green-600 dark:text-green-400">18</div>
+              <div className="text-sm text-green-600 dark:text-green-400">Evaluaciones Completadas</div>
             </div>
             <div className="rounded-lg bg-purple-50 p-4 dark:bg-purple-900/20">
-              <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">$2,450</div>
-              <div className="text-sm text-purple-600 dark:text-purple-400">Ingresos Totales</div>
+              <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">12</div>
+              <div className="text-sm text-purple-600 dark:text-purple-400">Sesiones Activas</div>
             </div>
             <div className="rounded-lg bg-orange-50 p-4 dark:bg-orange-900/20">
-              <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">4.9</div>
+              <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">4.8</div>
               <div className="text-sm text-orange-600 dark:text-orange-400">Calificación Promedio</div>
             </div>
           </div>

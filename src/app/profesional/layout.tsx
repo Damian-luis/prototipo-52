@@ -14,11 +14,11 @@ export default function ProfesionalLayout({
   const sidebarWidth = isExpanded || isHovered || isMobileOpen ? "ml-[290px]" : "ml-[90px]";
 
   return (
-    <AuthGuard requiredRole="profesional">
+    <AuthGuard requiredRole="PROFESIONAL">
       <ProfesionalSidebar />
       <div className={`relative flex flex-1 flex-col overflow-y-auto overflow-x-hidden transition-all duration-300 ${sidebarWidth}`}>
         <AppHeader />
-        <main className="grow [&>*:first-child]:scroll-mt-16">{children}</main>
+        <main className="grow [&>*:first-child]:scroll-mt-16 p-6">{children}</main>
       </div>
     </AuthGuard>
   );

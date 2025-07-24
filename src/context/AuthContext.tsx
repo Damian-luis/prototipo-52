@@ -1,6 +1,6 @@
 "use client";
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { authService, AuthResponse, LoginData, RegisterData } from '@/services/auth.service';
+import { authService, LoginResponse, RegisterResponse, LoginData, RegisterData } from '@/services/auth.service';
 import { googleAuthService, GoogleAuthResponse } from '@/services/google-auth.service';
 import { usersService } from '@/services/users.service';
 import { User } from '@/types';
@@ -29,11 +29,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const checkAuth = async () => {
       try {
         const token = localStorage.getItem('authToken');
-        if (token) {
-          // Intentar obtener el perfil del usuario
-          const userData = await usersService.getCurrentUser();
+        const userStr = localStorage.getItem('user');
+        
+        if (token && userStr) {
+          // Usar directamente los datos del localStorage
+          const userData = JSON.parse(userStr);
           setUser(userData);
           setIsAuthenticated(true);
+          console.log('Auth restored from localStorage:', userData);
         }
       } catch (error) {
         console.error('Error checking auth:', error);
@@ -52,14 +55,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       setLoading(true);
       const loginData: LoginData = { email, password };
-      const response: AuthResponse = await authService.login(loginData);
+      const response: LoginResponse = await authService.login(loginData);
+      
+      console.log('Login response:', response);
+      
+      // La respuesta del login tiene los datos del usuario directamente
+      const userData: User = {
+        id: response.id,
+        email: response.email,
+        name: response.fullName, // Mapear fullName a name
+        role: response.role,
+        profile_picture: response.avatar,
+        created_at: response.createdAt,
+        is_active: response.accountStatus === 'active',
+      };
       
       // Guardar token y datos del usuario
-      localStorage.setItem('authToken', response.access_token);
-      localStorage.setItem('user', JSON.stringify(response.user));
+      localStorage.setItem('authToken', response.token);
+      localStorage.setItem('user', JSON.stringify(userData));
       
-      setUser(response.user);
+      setUser(userData);
       setIsAuthenticated(true);
+      
+      console.log('Auth state updated:', { user: userData, isAuthenticated: true });
       
       return { success: true, message: 'Inicio de sesión exitoso' };
     } catch (error: any) {
@@ -77,11 +95,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       const response: GoogleAuthResponse = await googleAuthService.authenticateWithGoogle(googleUserData);
       
+      // La respuesta del backend tiene access_token y user separados
+      const userData: User = {
+        id: response.user.id,
+        email: response.user.email,
+        name: response.user.fullName, // Mapear fullName a name
+        role: response.user.role,
+        profile_picture: response.user.avatar,
+        created_at: response.user.createdAt || new Date().toISOString(),
+        is_active: response.user.accountStatus === 'active',
+      };
+      
       // Guardar token y datos del usuario
       localStorage.setItem('authToken', response.access_token);
-      localStorage.setItem('user', JSON.stringify(response.user));
+      localStorage.setItem('user', JSON.stringify(userData));
       
-      setUser(response.user);
+      setUser(userData);
       setIsAuthenticated(true);
       
       return { success: true, message: 'Inicio de sesión con Google exitoso' };
@@ -111,13 +140,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const register = async (userData: RegisterData): Promise<{ success: boolean; message: string }> => {
     try {
       setLoading(true);
-      const response: AuthResponse = await authService.register(userData);
+      const response: RegisterResponse = await authService.register(userData);
+      
+      // La respuesta del registro tiene access_token y user separados
+      const user: User = {
+        id: response.user.id,
+        email: response.user.email,
+        name: response.user.fullName, // Mapear fullName a name
+        role: response.user.role,
+        profile_picture: response.user.avatar,
+        created_at: response.user.createdAt || new Date().toISOString(),
+        is_active: response.user.accountStatus === 'active',
+      };
       
       // Guardar token y datos del usuario
       localStorage.setItem('authToken', response.access_token);
-      localStorage.setItem('user', JSON.stringify(response.user));
+      localStorage.setItem('user', JSON.stringify(user));
       
-      setUser(response.user);
+      setUser(user);
       setIsAuthenticated(true);
       
       return { success: true, message: 'Registro exitoso' };

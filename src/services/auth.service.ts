@@ -16,21 +16,43 @@ export interface RegisterData {
   city?: string;
 }
 
-export interface AuthResponse {
-  user: User;
+export interface LoginResponse {
+  id: string;
+  email: string;
+  fullName: string;
+  accountStatus: string;
+  createdAt: string;
+  avatar?: string;
+  isGoogleUser: boolean;
+  role: 'PROFESIONAL' | 'EMPRESA' | 'ESPECIALISTA' | 'ADMIN';
+  token: string;
+  refresh_token?: string;
+}
+
+export interface RegisterResponse {
   access_token: string;
-  refresh_token: string;
+  user: {
+    id: string;
+    email: string;
+    fullName: string;
+    accountStatus: string;
+    createdAt?: string;
+    avatar?: string;
+    isGoogleUser?: boolean;
+    role: 'PROFESIONAL' | 'EMPRESA' | 'ESPECIALISTA' | 'ADMIN';
+  };
+  refresh_token?: string;
 }
 
 export const authService = {
   // Login
-  async login(data: LoginData): Promise<AuthResponse> {
+  async login(data: LoginData): Promise<LoginResponse> {
     const response = await api.post('/auth/login', data);
     return response.data;
   },
 
   // Register
-  async register(data: RegisterData): Promise<AuthResponse> {
+  async register(data: RegisterData): Promise<RegisterResponse> {
     const response = await api.post('/auth/register', data);
     return response.data;
   },
@@ -41,7 +63,7 @@ export const authService = {
   },
 
   // Refresh token
-  async refreshToken(refreshToken: string): Promise<AuthResponse> {
+  async refreshToken(refreshToken: string): Promise<LoginResponse> {
     const response = await api.post('/auth/refresh', { refresh_token: refreshToken });
     return response.data;
   },

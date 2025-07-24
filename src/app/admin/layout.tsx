@@ -16,7 +16,7 @@ export default function AdminLayout({
   const sidebarWidth = isExpanded || isHovered || isMobileOpen ? "ml-[290px]" : "ml-[90px]";
 
   return (
-    <AuthGuard requiredRole="admin">
+    <AuthGuard requiredRole="ADMIN">
       {/* Sidebar fijo, el contenido debe tener margin-left */}
       <AppSidebar />
 
@@ -26,7 +26,7 @@ export default function AdminLayout({
         <AppHeader />
 
         {/* Main content */}
-        <main className="grow [&>*:first-child]:scroll-mt-16">{children}</main>
+        <main className="grow [&>*:first-child]:scroll-mt-16 p-6">{children}</main>
       </div>
     </AuthGuard>
   );

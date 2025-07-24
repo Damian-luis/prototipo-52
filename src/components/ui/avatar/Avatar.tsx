@@ -1,63 +1,81 @@
+"use client";
+import React, { useState } from "react";
 import Image from "next/image";
-import React from "react";
 
 interface AvatarProps {
-  src: string; // URL of the avatar image
-  alt?: string; // Alt text for the avatar
-  size?: "xsmall" | "small" | "medium" | "large" | "xlarge" | "xxlarge"; // Avatar size
-  status?: "online" | "offline" | "busy" | "none"; // Status indicator
+  src?: string | null;
+  alt?: string;
+  size?: "sm" | "md" | "lg" | "xl" | "2xl";
+  className?: string;
+  fallbackText?: string;
+  onClick?: () => void;
 }
-
-const sizeClasses = {
-  xsmall: "h-6 w-6 max-w-6",
-  small: "h-8 w-8 max-w-8",
-  medium: "h-10 w-10 max-w-10",
-  large: "h-12 w-12 max-w-12",
-  xlarge: "h-14 w-14 max-w-14",
-  xxlarge: "h-16 w-16 max-w-16",
-};
-
-const statusSizeClasses = {
-  xsmall: "h-1.5 w-1.5 max-w-1.5",
-  small: "h-2 w-2 max-w-2",
-  medium: "h-2.5 w-2.5 max-w-2.5",
-  large: "h-3 w-3 max-w-3",
-  xlarge: "h-3.5 w-3.5 max-w-3.5",
-  xxlarge: "h-4 w-4 max-w-4",
-};
-
-const statusColorClasses = {
-  online: "bg-success-500",
-  offline: "bg-error-400",
-  busy: "bg-warning-500",
-};
 
 const Avatar: React.FC<AvatarProps> = ({
   src,
-  alt = "User Avatar",
-  size = "medium",
-  status = "none",
+  alt = "Avatar",
+  size = "md",
+  className = "",
+  fallbackText,
+  onClick,
 }) => {
-  return (
-    <div className={`relative  rounded-full ${sizeClasses[size]}`}>
-      {/* Avatar Image */}
-      <Image
-        width="0"
-        height="0"
-        sizes="100vw"
-        src={src}
-        alt={alt}
-        className="object-cover w-full rounded-full"
-      />
+  const [imageError, setImageError] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
-      {/* Status Indicator */}
-      {status !== "none" && (
-        <span
-          className={`absolute bottom-0 right-0 rounded-full border-[1.5px] border-white dark:border-gray-900 ${
-            statusSizeClasses[size]
-          } ${statusColorClasses[status] || ""}`}
-        ></span>
+  const sizeClasses = {
+    sm: "h-8 w-8 text-sm",
+    md: "h-10 w-10 text-sm",
+    lg: "h-12 w-12 text-base",
+    xl: "h-16 w-16 text-lg",
+    "2xl": "h-24 w-24 text-xl",
+  };
+
+  const getInitials = (text?: string) => {
+    if (!text) return "U";
+    return text
+      .split(" ")
+      .map((word) => word.charAt(0))
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  const handleImageError = () => {
+    setImageError(true);
+  };
+
+  const handleImageLoad = () => {
+    setImageLoaded(true);
+  };
+
+  // Si no hay src, hay error de imagen, o la imagen no se ha cargado aún, mostrar fallback
+  const shouldShowFallback = !src || imageError || !imageLoaded;
+
+  return (
+    <div
+      className={`
+        relative inline-flex items-center justify-center rounded-full bg-gradient-to-br from-primary-500 to-primary-600 text-white font-semibold
+        ${sizeClasses[size]}
+        ${onClick ? "cursor-pointer hover:opacity-80 transition-opacity" : ""}
+        ${className}
+      `}
+      onClick={onClick}
+    >
+      {!shouldShowFallback && (
+        <Image
+          src={src}
+          alt={alt}
+          fill
+          className="object-cover rounded-full"
+          onError={handleImageError}
+          onLoad={handleImageLoad}
+        />
       )}
+      
+      {/* Fallback con iniciales */}
+      <span className="select-none">
+        {getInitials(fallbackText)}
+      </span>
     </div>
   );
 };

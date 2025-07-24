@@ -40,10 +40,31 @@ export default function SignInForm() {
         // Login successful, redirect based on user role
         // Wait a moment for the auth state to update
         setTimeout(() => {
-          // The redirect will be handled by the main page component
-          // which checks isAuthenticated and user role
-          router.push('/');
-        }, 100);
+          // Get the user from localStorage to determine the role
+          const userStr = localStorage.getItem('user');
+          if (userStr) {
+            const user = JSON.parse(userStr);
+            console.log('Redirecting user with role:', user.role);
+            switch (user.role) {
+              case 'ADMIN':
+                router.push('/admin');
+                break;
+              case 'EMPRESA':
+                router.push('/empresa');
+                break;
+              case 'PROFESIONAL':
+                router.push('/profesional');
+                break;
+              case 'ESPECIALISTA':
+                router.push('/especialista');
+                break;
+              default:
+                router.push('/');
+            }
+          } else {
+            router.push('/');
+          }
+        }, 50);
       } else {
         setError(result.message);
       }
@@ -62,8 +83,31 @@ export default function SignInForm() {
       if (result.success) {
         // Login successful, redirect based on user role
         setTimeout(() => {
-          router.push('/');
-        }, 100);
+          // Get the user from localStorage to determine the role
+          const userStr = localStorage.getItem('user');
+          if (userStr) {
+            const user = JSON.parse(userStr);
+            console.log('Redirecting Google user with role:', user.role);
+            switch (user.role) {
+              case 'ADMIN':
+                router.push('/admin');
+                break;
+              case 'EMPRESA':
+                router.push('/empresa');
+                break;
+              case 'PROFESIONAL':
+                router.push('/profesional');
+                break;
+              case 'ESPECIALISTA':
+                router.push('/especialista');
+                break;
+              default:
+                router.push('/');
+            }
+          } else {
+            router.push('/');
+          }
+        }, 50);
       } else {
         setError(result.message);
       }
