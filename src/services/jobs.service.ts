@@ -13,12 +13,18 @@ export interface Job {
   };
   duration?: string;
   location?: string;
-  status: 'ACTIVE' | 'PAUSED' | 'CLOSED' | 'COMPLETED';
+  status: 'DRAFT' | 'ACTIVE' | 'PAUSED' | 'CLOSED' | 'COMPLETED';
   isUrgent: boolean;
+  experienceLevel?: string;
+  projectType?: string;
+  maxApplicants?: number;
+  companyName?: string;
   createdAt: string;
   updatedAt: string;
   companyId: string;
-  companyName: string;
+  // Propiedades para profesionales
+  hasApplied?: boolean;
+  isSaved?: boolean;
 }
 
 export interface CreateJobData {
@@ -48,8 +54,12 @@ export interface UpdateJobData {
   };
   duration?: string;
   location?: string;
-  status?: 'ACTIVE' | 'PAUSED' | 'CLOSED' | 'COMPLETED';
+  status?: 'DRAFT' | 'ACTIVE' | 'PAUSED' | 'CLOSED' | 'COMPLETED';
   isUrgent?: boolean;
+  experienceLevel?: string;
+  projectType?: string;
+  maxApplicants?: number;
+  companyName?: string;
 }
 
 export interface JobFilters {
@@ -132,6 +142,27 @@ export const jobsService = {
   // Get job stats for company
   async getJobStats(): Promise<any> {
     const response = await api.get('/jobs/company/stats');
+    return response.data;
+  },
+
+  // Professional methods
+  async getAvailableJobs(): Promise<Job[]> {
+    const response = await api.get('/jobs/professional/available');
+    return response.data;
+  },
+
+  async saveJob(jobId: string): Promise<any> {
+    const response = await api.post(`/jobs/${jobId}/save`);
+    return response.data;
+  },
+
+  async unsaveJob(jobId: string): Promise<any> {
+    const response = await api.delete(`/jobs/${jobId}/save`);
+    return response.data;
+  },
+
+  async getSavedJobs(): Promise<Job[]> {
+    const response = await api.get('/jobs/saved');
     return response.data;
   },
 }; 

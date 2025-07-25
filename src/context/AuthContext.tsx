@@ -1,6 +1,6 @@
 "use client";
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { authService, LoginResponse, RegisterResponse, LoginData, RegisterData } from '@/services/auth.service';
+import authService, { LoginResponse, RegisterResponse, LoginData, RegisterData } from '@/services/auth.service';
 import { googleAuthService, GoogleAuthResponse } from '@/services/google-auth.service';
 import { usersService } from '@/services/users.service';
 import { User } from '@/types';
@@ -14,6 +14,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   register: (userData: RegisterData) => Promise<{ success: boolean; message: string }>;
   updateProfile: (userData: Partial<User>) => Promise<{ success: boolean; message: string }>;
+  updateAvatar: (avatarUrl: string) => void; // Nuevo método para actualizar avatar
   resetPassword: (email: string) => Promise<{ success: boolean; message: string }>;
 }
 
@@ -189,6 +190,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const updateAvatar = (avatarUrl: string) => {
+    if (user) {
+      const updatedUser: User = {
+        ...user,
+        profile_picture: avatarUrl,
+      };
+      setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+    }
+  };
+
   const resetPassword = async (email: string): Promise<{ success: boolean; message: string }> => {
     try {
       setLoading(true);
@@ -213,6 +225,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     logout,
     register,
     updateProfile,
+    updateAvatar,
     resetPassword,
   };
 

@@ -46,14 +46,13 @@ export default function UserDropdown() {
         onClick={toggleDropdown}
         className="flex items-center text-gray-700 dark:text-gray-300 dropdown-toggle hover:text-gray-900 dark:hover:text-white transition-colors duration-200"
       >
-        <div className="mr-3 ring-2 ring-primary-100 dark:ring-primary-900/30 rounded-full">
-          <Avatar
-            src={user?.profile_picture}
-            alt={displayName}
-            size="lg"
-            fallbackText={displayName}
-          />
-        </div>
+        <Avatar
+          src={user?.profile_picture}
+          alt={displayName}
+          size="lg"
+          fallbackText={displayName}
+          className="mr-3 border-2 border-primary-100 dark:border-primary-900/30"
+        />
 
         <span className="block mr-1 font-semibold text-theme-sm">{displayName}</span>
 

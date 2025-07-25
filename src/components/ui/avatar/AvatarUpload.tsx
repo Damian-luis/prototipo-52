@@ -2,6 +2,7 @@
 import React, { useState, useRef } from "react";
 import Avatar from "./Avatar";
 import Button from "../button/Button";
+import { ImageCropModal } from "../image-crop";
 
 interface AvatarUploadProps {
   currentAvatar?: string | null;
@@ -22,6 +23,8 @@ const AvatarUpload: React.FC<AvatarUploadProps> = ({
 }) => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isCropModalOpen, setIsCropModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -34,21 +37,49 @@ const AvatarUpload: React.FC<AvatarUploadProps> = ({
       return;
     }
 
-    // Validar tamaño (máximo 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      alert("La imagen debe ser menor a 5MB");
+    // Validar tamaño (máximo 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      alert("La imagen debe ser menor a 10MB");
       return;
     }
 
-    // Crear preview
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setPreviewUrl(e.target?.result as string);
-    };
-    reader.readAsDataURL(file);
+    // Abrir modal de recorte
+    setSelectedFile(file);
+    setIsCropModalOpen(true);
+  };
 
-    // Llamar callback
-    onAvatarChange(file);
+  const handleCropComplete = async (croppedImageBlob: Blob) => {
+    try {
+      setIsUploading(true);
+      
+      // Crear un archivo File desde el Blob
+      const croppedFile = new File([croppedImageBlob], 'profile-image.jpg', {
+        type: 'image/jpeg',
+        lastModified: Date.now(),
+      });
+
+      // Crear preview
+      const imageUrl = URL.createObjectURL(croppedImageBlob);
+      setPreviewUrl(imageUrl);
+
+      // Llamar callback con el archivo recortado
+      onAvatarChange(croppedFile);
+      
+    } catch (error) {
+      console.error('Error al procesar la imagen:', error);
+      alert('Error al procesar la imagen');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleCloseCropModal = () => {
+    setIsCropModalOpen(false);
+    setSelectedFile(null);
+    // Limpiar el input file
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   const handleUploadClick = () => {
@@ -120,9 +151,9 @@ const AvatarUpload: React.FC<AvatarUploadProps> = ({
           variant="outline"
           size="sm"
           onClick={handleUploadClick}
-          disabled={disabled}
+          disabled={disabled || isUploading}
         >
-          Cambiar Foto
+          {isUploading ? "Procesando..." : "Cambiar Foto"}
         </Button>
         
         {(previewUrl || currentAvatar) && (
@@ -130,7 +161,7 @@ const AvatarUpload: React.FC<AvatarUploadProps> = ({
             variant="outline"
             size="sm"
             onClick={handleRemoveAvatar}
-            disabled={disabled}
+            disabled={disabled || isUploading}
             className="text-red-600 hover:text-red-700 border-red-300 hover:border-red-400"
           >
             Eliminar
@@ -141,8 +172,19 @@ const AvatarUpload: React.FC<AvatarUploadProps> = ({
       {/* Información de ayuda */}
       <div className="text-xs text-gray-500 text-center max-w-xs">
         <p>Formatos soportados: JPG, PNG, GIF</p>
-        <p>Tamaño máximo: 5MB</p>
+        <p>Tamaño máximo: 10MB</p>
+        <p className="text-primary-600 font-medium">La imagen se recortará en formato circular</p>
       </div>
+
+      {/* Modal de recorte */}
+      <ImageCropModal
+        isOpen={isCropModalOpen}
+        onClose={handleCloseCropModal}
+        imageFile={selectedFile}
+        onCropComplete={handleCropComplete}
+        aspectRatio={1}
+        circularCrop={true}
+      />
     </div>
   );
 };

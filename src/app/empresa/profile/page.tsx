@@ -5,14 +5,34 @@ import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import AvatarUpload from "@/components/ui/avatar/AvatarUpload";
 import { useAuth } from "@/context/AuthContext";
+import avatarService from "@/services/avatar.service";
 
 export default function EmpresaProfilePage() {
-  const { user } = useAuth();
+  const { user, updateProfile, updateAvatar } = useAuth();
   const [selectedAvatar, setSelectedAvatar] = useState<File | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
-  const handleAvatarChange = (file: File) => {
-    setSelectedAvatar(file);
+  const handleAvatarChange = async (file: File) => {
+    try {
+      setIsUploadingAvatar(true);
+      
+      // Subir avatar al servidor
+      const result = await avatarService.uploadAvatar(file);
+      
+      if (result.success && result.avatarUrl) {
+        // Actualizar el contexto de autenticación inmediatamente
+        updateAvatar(result.avatarUrl);
+        alert('Logo de empresa actualizado exitosamente');
+      } else {
+        alert('Error al actualizar el logo: ' + result.message);
+      }
+    } catch (error) {
+      console.error('Error al subir avatar:', error);
+      alert('Error al subir el logo de empresa');
+    } finally {
+      setIsUploadingAvatar(false);
+    }
   };
 
   const handleUpdateProfile = async () => {
@@ -56,7 +76,7 @@ export default function EmpresaProfilePage() {
             onAvatarChange={handleAvatarChange}
             size="2xl"
             fallbackText={user?.name}
-            disabled={isUpdating}
+            disabled={isUploadingAvatar}
           />
         </Card>
 

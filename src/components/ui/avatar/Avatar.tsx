@@ -41,20 +41,22 @@ const Avatar: React.FC<AvatarProps> = ({
   };
 
   const handleImageError = () => {
+    console.log("Error loading avatar image:", src);
     setImageError(true);
   };
 
   const handleImageLoad = () => {
+    console.log("Avatar image loaded successfully:", src);
     setImageLoaded(true);
   };
 
   // Si no hay src, hay error de imagen, o la imagen no se ha cargado aún, mostrar fallback
-  const shouldShowFallback = !src || imageError || !imageLoaded;
+  const shouldShowFallback = !src //|| imageError || !imageLoaded;
 
   return (
     <div
       className={`
-        relative inline-flex items-center justify-center rounded-full bg-gradient-to-br from-primary-500 to-primary-600 text-white font-semibold
+        relative inline-flex items-center justify-center rounded-full bg-gradient-to-br from-primary-500 to-primary-600 text-white font-semibold overflow-hidden
         ${sizeClasses[size]}
         ${onClick ? "cursor-pointer hover:opacity-80 transition-opacity" : ""}
         ${className}
@@ -67,15 +69,22 @@ const Avatar: React.FC<AvatarProps> = ({
           alt={alt}
           fill
           className="object-cover rounded-full"
+          style={{
+            objectPosition: 'center center'
+          }}
           onError={handleImageError}
           onLoad={handleImageLoad}
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          priority={size === "lg" || size === "xl" || size === "2xl"}
         />
       )}
       
-      {/* Fallback con iniciales */}
-      <span className="select-none">
-        {getInitials(fallbackText)}
-      </span>
+      {/* Fallback con iniciales - solo mostrar cuando no hay imagen o hay error */}
+      {shouldShowFallback && (
+        <span className="select-none">
+          {getInitials(fallbackText)}
+        </span>
+      )}
     </div>
   );
 };

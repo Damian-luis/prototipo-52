@@ -15,20 +15,18 @@ import {
   Users, 
   Clock, 
   AlertTriangle,
-  ArrowLeft,
-  Bookmark,
-  Send
+  Edit,
+  ArrowLeft
 } from "lucide-react";
 
 const JobDetailsPage = () => {
   const params = useParams();
   const router = useRouter();
   const { user } = useAuth();
-  const { getJobById, saveJob, unsaveJob, createApplication } = useProject();
+  const { getJobById, updateJob } = useProject();
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
-  const [applying, setApplying] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [publishing, setPublishing] = useState(false);
 
   const jobId = params.id as string;
 
@@ -40,8 +38,8 @@ const JobDetailsPage = () => {
         setJob(jobData);
       } catch (error) {
         console.error('Error loading job:', error);
-        alert('Error al cargar el trabajo');
-        router.push('/profesional/jobs/search');
+        alert('Error al cargar el proyecto');
+        router.push('/empresa/proyectos');
       } finally {
         setLoading(false);
       }
@@ -52,57 +50,44 @@ const JobDetailsPage = () => {
     }
   }, [jobId, getJobById, router]);
 
-  const handleApply = async () => {
-    if (!job) return;
-    
-    setApplying(true);
-    try {
-      const result = await createApplication({
-        jobId: job.id,
-        coverLetter: `Me interesa mucho este proyecto. Tengo experiencia en ${job.skills?.join(', ')} y creo que puedo aportar valor significativo.`,
-        proposedRate: job.budget?.max || 0,
-        estimatedDuration: job.duration || '2-4 semanas'
-      });
-      
-      if (result.success) {
-        alert('¡Aplicación enviada exitosamente!');
-        setJob({ ...job, hasApplied: true });
-      } else {
-        alert('Error al enviar la aplicación: ' + result.message);
-      }
-    } catch (error) {
-      alert('Error al enviar la aplicación');
-    } finally {
-      setApplying(false);
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'ACTIVE': return 'success';
+      case 'COMPLETED': return 'primary';
+      case 'PAUSED': return 'warning';
+      case 'CLOSED': return 'error';
+      case 'DRAFT': return 'light';
+      default: return 'light';
     }
   };
 
-  const handleSaveJob = async () => {
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'ACTIVE': return 'Activo';
+      case 'COMPLETED': return 'Completado';
+      case 'PAUSED': return 'Pausado';
+      case 'CLOSED': return 'Cerrado';
+      case 'DRAFT': return 'Borrador';
+      default: return status;
+    }
+  };
+
+  const handlePublish = async () => {
     if (!job) return;
     
-    setSaving(true);
+    setPublishing(true);
     try {
-      if (job.isSaved) {
-        const result = await unsaveJob(job.id);
-        if (result.success) {
-          alert('Trabajo eliminado de favoritos');
-          setJob({ ...job, isSaved: false });
-        } else {
-          alert('Error al eliminar de favoritos: ' + result.message);
-        }
+      const result = await updateJob(job.id, { status: 'ACTIVE' });
+      if (result.success) {
+        alert('Proyecto publicado exitosamente');
+        setJob({ ...job, status: 'ACTIVE' });
       } else {
-        const result = await saveJob(job.id);
-        if (result.success) {
-          alert('Trabajo guardado en favoritos');
-          setJob({ ...job, isSaved: true });
-        } else {
-          alert('Error al guardar trabajo: ' + result.message);
-        }
+        alert('Error al publicar el proyecto: ' + result.message);
       }
     } catch (error) {
-      alert('Error al guardar trabajo');
+      alert('Error al publicar el proyecto');
     } finally {
-      setSaving(false);
+      setPublishing(false);
     }
   };
 
@@ -110,9 +95,9 @@ const JobDetailsPage = () => {
     return (
       <div className="mx-auto max-w-4xl">
         <PageBreadcrumb pageTitle="Cargando..." />
-        <ComponentCard title="Cargando trabajo">
+        <ComponentCard title="Cargando proyecto">
           <div className="text-center py-8">
-            <p className="text-gray-500">Cargando detalles del trabajo...</p>
+            <p className="text-gray-500">Cargando detalles del proyecto...</p>
           </div>
         </ComponentCard>
       </div>
@@ -122,12 +107,12 @@ const JobDetailsPage = () => {
   if (!job) {
     return (
       <div className="mx-auto max-w-4xl">
-        <PageBreadcrumb pageTitle="Trabajo no encontrado" />
-        <ComponentCard title="Trabajo no encontrado">
+        <PageBreadcrumb pageTitle="Proyecto no encontrado" />
+        <ComponentCard title="Proyecto no encontrado">
           <div className="text-center py-8">
-            <p className="text-gray-500 mb-4">El trabajo solicitado no existe</p>
-            <Button onClick={() => router.push('/profesional/jobs/search')}>
-              Volver a búsqueda
+            <p className="text-gray-500 mb-4">El proyecto solicitado no existe</p>
+            <Button onClick={() => router.push('/empresa/proyectos')}>
+              Volver a proyectos
             </Button>
           </div>
         </ComponentCard>
@@ -142,22 +127,15 @@ const JobDetailsPage = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Información Principal */}
         <div className="lg:col-span-2 space-y-6">
-          <ComponentCard title="Información del Trabajo">
+          <ComponentCard title="Información del Proyecto">
             <div className="space-y-4">
               <div className="flex justify-between items-start">
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
                   {job.title}
                 </h1>
-                <div className="flex gap-2">
-                  <Badge color={job.isUrgent ? 'error' : 'success'}>
-                    {job.isUrgent ? 'Urgente' : 'Normal'}
-                  </Badge>
-                  {job.hasApplied && (
-                    <Badge color="primary">
-                      Ya aplicaste
-                    </Badge>
-                  )}
-                </div>
+                <Badge color={getStatusColor(job.status)}>
+                  {getStatusText(job.status)}
+                </Badge>
               </div>
               
               <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
@@ -190,7 +168,7 @@ const JobDetailsPage = () => {
 
         {/* Panel Lateral */}
         <div className="space-y-6">
-          <ComponentCard title="Detalles del Trabajo">
+          <ComponentCard title="Detalles del Proyecto">
             <div className="space-y-4">
               <div className="flex items-center space-x-3">
                 <DollarSign className="w-5 h-5 text-green-500" />
@@ -257,32 +235,41 @@ const JobDetailsPage = () => {
           <ComponentCard title="Acciones">
             <div className="space-y-3">
               <Button
-                onClick={handleApply}
-                variant="primary"
-                className="w-full"
-                disabled={applying || job.hasApplied}
-              >
-                <Send className="w-4 h-4 mr-2" />
-                {applying ? 'Aplicando...' : job.hasApplied ? 'Ya Aplicaste' : 'Aplicar Ahora'}
-              </Button>
-              
-              <Button
-                onClick={handleSaveJob}
+                onClick={() => router.push(`/empresa/proyectos/${job.id}/editar`)}
                 variant="outline"
                 className="w-full"
-                disabled={saving}
               >
-                <Bookmark className="w-4 h-4 mr-2" />
-                {saving ? 'Guardando...' : job.isSaved ? 'Guardado' : 'Guardar'}
+                <Edit className="w-4 h-4 mr-2" />
+                Editar Proyecto
               </Button>
               
               <Button
-                onClick={() => router.push('/profesional/jobs/search')}
+                onClick={() => router.push(`/empresa/proyectos/${job.id}/applications`)}
+                variant="outline"
+                className="w-full"
+              >
+                <Users className="w-4 h-4 mr-2" />
+                Ver Aplicaciones
+              </Button>
+              
+              {job.status === 'DRAFT' && (
+                <Button
+                  onClick={handlePublish}
+                  variant="primary"
+                  className="w-full"
+                  disabled={publishing}
+                >
+                  {publishing ? 'Publicando...' : 'Publicar Proyecto'}
+                </Button>
+              )}
+              
+              <Button
+                onClick={() => router.push('/empresa/proyectos')}
                 variant="outline"
                 className="w-full"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Volver a Búsqueda
+                Volver a Proyectos
               </Button>
             </div>
           </ComponentCard>

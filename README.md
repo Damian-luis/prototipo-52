@@ -2,6 +2,11 @@
 
 Una plataforma completa para gestión de outsourcing que conecta empresas con profesionales, utilizando inteligencia artificial para matching y automatización de procesos.
 
+## 📋 DOCUMENTACIÓN DE FUNCIONALIDADES
+
+- **[FUNCIONALIDADES_PLATAFORMA.md](./FUNCIONALIDADES_PLATAFORMA.md)** - Lista completa de funcionalidades por roles y fases de implementación
+- **[CHANGELOG_IMPLEMENTACION.md](./CHANGELOG_IMPLEMENTACION.md)** - Registro diario de avances y cambios en el desarrollo
+
 ## 🚀 Características Principales
 
 ### Para Empresas
@@ -23,12 +28,36 @@ Una plataforma completa para gestión de outsourcing que conecta empresas con pr
 
 ## 🛠️ Tecnologías
 
-- **Frontend**: Next.js 15, React 19, TypeScript
-- **Backend**: Firebase (Firestore, Auth, Storage)
-- **Styling**: Tailwind CSS 4.0
-- **IA**: Webhooks con n8n para análisis y recomendaciones
-- **Blockchain**: Integración con contratos inteligentes
+- **Frontend**: Next.js 14, React 18, TypeScript
+- **Backend**: NestJS, MongoDB con Prisma
+- **Styling**: Tailwind CSS
+- **Autenticación**: JWT + Google OAuth
 - **Estado**: Context API con múltiples providers
+- **Almacenamiento**: Cloudinary
+
+## 📊 ESTADO ACTUAL DEL PROYECTO
+
+### ✅ **COMPLETADO (100%)**
+- **Sistema de autenticación** (login, registro, Google OAuth)
+- **Gestión de roles** (ADMIN, EMPRESA, PROFESIONAL, ESPECIALISTA)
+- **Layouts y navegación** por rol
+- **Sistema de avatares** con fallback
+- **Gestión de perfiles** básica
+- **Sidebars** para todos los roles
+- **Rutas protegidas** con AuthGuard
+- **Redirección automática** por rol
+
+### 🔄 **EN DESARROLLO**
+- Sistema de chat en tiempo real
+- Sistema de pagos con Stripe
+- Gestión de proyectos básica
+
+### ⏳ **PENDIENTE**
+- Algoritmo de matching IA
+- Smart contracts
+- Sistema de calificaciones
+- Analíticas avanzadas
+- Mobile app
 
 ## 📋 Requisitos Funcionales Implementados
 
@@ -50,21 +79,20 @@ Una plataforma completa para gestión de outsourcing que conecta empresas con pr
 
 ### Contextos (Estado Global)
 - `AuthContext`: Autenticación y gestión de usuarios
-- `ProjectContext`: Gestión de proyectos y tareas
-- `ContractContext`: Contratos y firmas digitales
-- `PaymentContext`: Pagos y facturación
-- `AIContext`: Recomendaciones y análisis de IA
-- `NotificationContext`: Sistema de notificaciones
-- `Web3Context`: Integración blockchain
+- `SidebarContext`: Control de navegación lateral
+- `ProjectContext`: Gestión de proyectos y tareas (pendiente)
+- `ContractContext`: Contratos y firmas digitales (pendiente)
+- `PaymentContext`: Pagos y facturación (pendiente)
+- `AIContext`: Recomendaciones y análisis de IA (pendiente)
+- `NotificationContext`: Sistema de notificaciones (pendiente)
 
-### Servicios Firebase
-- `userService`: Gestión de usuarios
-- `projectService`: Operaciones de proyectos
-- `contractService`: Gestión de contratos
-- `paymentService`: Procesamiento de pagos
-- `notificationService`: Sistema de notificaciones
-- `aiService`: Servicios de IA
-- `webhookService`: Integración con n8n
+### Servicios
+- `authService`: Autenticación y gestión de usuarios
+- `googleAuthService`: Integración con Google OAuth
+- `projectService`: Operaciones de proyectos (pendiente)
+- `contractService`: Gestión de contratos (pendiente)
+- `paymentService`: Procesamiento de pagos (pendiente)
+- `notificationService`: Sistema de notificaciones (pendiente)
 
 ## 🚀 Instalación
 
@@ -79,70 +107,60 @@ cd proyecto-52
 npm install
 ```
 
-3. **Configurar Firebase**
-   - Crear proyecto en Firebase Console
-   - Habilitar Authentication, Firestore y Storage
-   - Copiar configuración a `.env.local`
-
-4. **Configurar variables de entorno**
+3. **Configurar variables de entorno**
 ```bash
 cp .env.local.example .env.local
-# Editar .env.local con tus credenciales de Firebase
+# Editar .env.local con tus credenciales
 ```
 
-5. **Ejecutar en desarrollo**
+4. **Ejecutar en desarrollo**
 ```bash
 npm run dev
 ```
 
-## 🔧 Configuración de Firebase
+## 🔧 Configuración
 
-### 1. Crear Proyecto
-- Ve a [Firebase Console](https://console.firebase.google.com/)
-- Crea un nuevo proyecto
-- Habilita Authentication, Firestore Database y Storage
+### Variables de Entorno Requeridas
+```env
+# Google OAuth
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=your_google_client_id
 
-### 2. Configurar Authentication
-- Habilita Email/Password authentication
-- Configura las reglas de seguridad
+# Backend API
+NEXT_PUBLIC_API_URL=http://localhost:3001
 
-### 3. Configurar Firestore
-- Crea la base de datos en modo de prueba
-- Configura las reglas de seguridad
-
-### 4. Configurar Storage
-- Habilita Cloud Storage
-- Configura las reglas de seguridad
+# Cloudinary (para avatares)
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+```
 
 ## 📊 Estructura de Datos
 
-### Colecciones Firestore
-- `users`: Usuarios del sistema
-- `projects`: Proyectos de outsourcing
-- `contracts`: Contratos entre empresas y profesionales
-- `payments`: Transacciones de pago
-- `notifications`: Notificaciones del sistema
-- `consultations`: Asesorías profesionales
-- `interests`: Intereses de profesionales en proyectos
-- `aiRecommendations`: Recomendaciones de IA
+### Tipos de Usuario
+- `ADMIN`: Administrador del sistema
+- `EMPRESA`: Empresas que contratan servicios
+- `PROFESIONAL`: Profesionales que ofrecen servicios
+- `ESPECIALISTA`: Especialistas en asesoría profesional
 
-## 🤖 Integración con IA
+### Interfaces Principales
+```typescript
+interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  profile_picture?: string;
+  created_at: string;
+  is_active: boolean;
+}
 
-La plataforma utiliza webhooks con n8n para:
-- **Análisis de perfiles**: Evaluación automática de habilidades
-- **Matching de profesionales**: Recomendaciones inteligentes
-- **Análisis de proyectos**: Optimización de requerimientos
-
-### Configuración de n8n
-1. Instalar n8n
-2. Crear workflows para análisis de IA
-3. Configurar webhooks para recibir datos
-4. Configurar la URL del webhook en `.env.local`
+type UserRole = 'ADMIN' | 'EMPRESA' | 'PROFESIONAL' | 'ESPECIALISTA';
+```
 
 ## 🔐 Seguridad
 
-- Autenticación con Firebase Auth
-- Reglas de seguridad en Firestore
+- Autenticación con JWT
+- Google OAuth integrado
 - Validación de roles y permisos
 - Protección de rutas con AuthGuard
 - Encriptación de datos sensibles
@@ -173,12 +191,23 @@ La plataforma utiliza webhooks con n8n para:
 
 ## 🎯 Próximos Pasos
 
-- [ ] Implementar tests unitarios y de integración
-- [ ] Optimizar rendimiento y SEO
-- [ ] Implementar PWA
-- [ ] Añadir más integraciones (Stripe, PayPal)
-- [ ] Implementar sistema de gamificación
-- [ ] Añadir funcionalidades de chat en tiempo real
+### **FASE 1 - CRÍTICO (Semanas 1-4)**
+1. **Sistema de chat** en tiempo real (Socket.io)
+2. **Sistema de pagos** con Stripe
+3. **Sistema de calificaciones** bidireccional
+4. **Gestión de milestones** con entregables
+
+### **FASE 2 - IMPORTANTE (Semanas 5-8)**
+1. **Algoritmo de matching IA**
+2. **Smart contracts** con blockchain
+3. **Analíticas avanzadas**
+4. **Sistema de asesoría completo**
+
+### **FASE 3 - MEJORAS (Semanas 9-12)**
+1. **Mobile app** nativa
+2. **Integraciones externas**
+3. **PWA** (Progressive Web App)
+4. **API pública** para desarrolladores
 
 ## 📄 Licencia
 
@@ -197,3 +226,8 @@ Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más det
 Para soporte técnico o preguntas, contacta a:
 - Email: soporte@outsourcing-platform.com
 - Documentación: [docs.outsourcing-platform.com](https://docs.outsourcing-platform.com)
+
+---
+
+*Para ver el progreso detallado de implementación, consulta [FUNCIONALIDADES_PLATAFORMA.md](./FUNCIONALIDADES_PLATAFORMA.md)*
+*Para ver el registro de cambios diarios, consulta [CHANGELOG_IMPLEMENTACION.md](./CHANGELOG_IMPLEMENTACION.md)*

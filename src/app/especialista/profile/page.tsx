@@ -5,21 +5,41 @@ import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import AvatarUpload from "@/components/ui/avatar/AvatarUpload";
 import { useAuth } from "@/context/AuthContext";
+import avatarService from "@/services/avatar.service";
 
 export default function EspecialistaProfilePage() {
-  const { user } = useAuth();
+  const { user, updateProfile, updateAvatar } = useAuth();
   const [selectedAvatar, setSelectedAvatar] = useState<File | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
-  const handleAvatarChange = (file: File) => {
-    setSelectedAvatar(file);
+  const handleAvatarChange = async (file: File) => {
+    try {
+      setIsUploadingAvatar(true);
+      
+      // Subir avatar al servidor
+      const result = await avatarService.uploadAvatar(file);
+      
+      if (result.success && result.avatarUrl) {
+        // Actualizar el contexto de autenticación inmediatamente
+        updateAvatar(result.avatarUrl);
+        alert('Foto de perfil actualizada exitosamente');
+      } else {
+        alert('Error al actualizar la foto de perfil: ' + result.message);
+      }
+    } catch (error) {
+      console.error('Error al subir avatar:', error);
+      alert('Error al subir la foto de perfil');
+    } finally {
+      setIsUploadingAvatar(false);
+    }
   };
 
   const handleUpdateProfile = async () => {
     setIsUpdating(true);
     try {
-      // Aquí implementarías la lógica para subir el avatar y actualizar el perfil
-      console.log("Actualizando perfil con avatar:", selectedAvatar);
+      // Aquí implementarías la lógica para actualizar otros datos del perfil
+      console.log("Actualizando perfil de especialista");
       
       // Simular delay
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -56,7 +76,7 @@ export default function EspecialistaProfilePage() {
             onAvatarChange={handleAvatarChange}
             size="2xl"
             fallbackText={user?.name}
-            disabled={isUpdating}
+            disabled={isUploadingAvatar}
           />
         </Card>
 

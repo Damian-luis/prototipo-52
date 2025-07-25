@@ -206,7 +206,10 @@ export default function SignInForm() {
             </div>
 
             <div className="text-sm">
-              <a href="#" className="font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300 transition-colors">
+              <a 
+                href="/forgot-password" 
+                className="font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300 transition-colors"
+              >
                 ¿Olvidaste tu contraseña?
               </a>
             </div>

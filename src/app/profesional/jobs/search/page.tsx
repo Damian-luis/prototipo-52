@@ -2,48 +2,66 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useProject } from "@/context/ProjectContext";
+import { useRouter } from "next/navigation";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import ComponentCard from "@/components/common/ComponentCard";
 import Button from "@/components/ui/button/Button";
 import Badge from "@/components/ui/badge/Badge";
-import { Project } from "@/types";
+import { Job } from "@/services/jobs.service";
 
 const FreelancerJobsSearchPage = () => {
   const { user } = useAuth();
-  const { projects } = useProject();
-  const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
+  const { getAvailableJobs, saveJob, unsaveJob, createApplication } = useProject();
+  const router = useRouter();
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [filteredJobs, setFilteredJobs] = useState<Job[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [skillFilter, setSkillFilter] = useState("");
   const [budgetFilter, setBudgetFilter] = useState("");
   const [durationFilter, setDurationFilter] = useState("");
   const [experienceFilter, setExperienceFilter] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [applyingJob, setApplyingJob] = useState<string | null>(null);
+  const [savingJob, setSavingJob] = useState<string | null>(null);
 
   useEffect(() => {
-    // Filtrar proyectos disponibles (no del usuario actual)
-    const availableProjects = projects.filter(p => p.company_id !== user?.id && p.status === 'active');
-    setFilteredProjects(availableProjects);
-  }, [projects, user]);
+    const loadJobs = async () => {
+      try {
+        setLoading(true);
+        const availableJobs = await getAvailableJobs();
+        setJobs(availableJobs);
+        setFilteredJobs(availableJobs);
+      } catch (error) {
+        console.error('Error loading jobs:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadJobs();
+  }, [getAvailableJobs]);
 
   useEffect(() => {
-    let filtered = projects.filter(p => p.company_id !== user?.id && p.status === 'active');
+    if (!jobs) return;
+    
+    let filtered = jobs;
     
     if (searchTerm) {
-      filtered = filtered.filter(p => 
-        p.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.company_name.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter((job: Job) => 
+        job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        job.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (job.companyName && job.companyName.toLowerCase().includes(searchTerm.toLowerCase()))
       );
     }
     
     if (skillFilter) {
-      filtered = filtered.filter(p => 
-        p.skills.some(skill => skill.toLowerCase().includes(skillFilter.toLowerCase()))
+      filtered = filtered.filter((job: Job) => 
+        job.skills && job.skills.some((skill: string) => skill.toLowerCase().includes(skillFilter.toLowerCase()))
       );
     }
     
     if (budgetFilter) {
       const minBudget = parseInt(budgetFilter);
-      filtered = filtered.filter(p => p.budget.min >= minBudget);
+      filtered = filtered.filter((job: Job) => job.budget && job.budget.min >= minBudget);
     }
     
     if (durationFilter) {
@@ -55,41 +73,82 @@ const FreelancerJobsSearchPage = () => {
       // Implementar filtro por experiencia requerida
     }
     
-    setFilteredProjects(filtered);
-  }, [projects, user, searchTerm, skillFilter, budgetFilter, durationFilter, experienceFilter]);
+    setFilteredJobs(filtered);
+  }, [jobs, searchTerm, skillFilter, budgetFilter, durationFilter, experienceFilter]);
 
-  const handleApplyToJob = (project: Project) => {
-    // Implementar aplicación a trabajo
-    console.log('Aplicar a trabajo:', project.id);
-  };
-
-  const handleSaveJob = (project: Project) => {
-    // Implementar guardar trabajo
-    console.log('Guardar trabajo:', project.id);
-  };
-
-  const handleViewDetails = (project: Project) => {
-    // Implementar ver detalles
-    console.log('Ver detalles:', project.id);
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high': return 'error';
-      case 'medium': return 'warning';
-      case 'low': return 'success';
-      default: return 'light';
+  const handleApplyToJob = async (job: Job) => {
+    setApplyingJob(job.id);
+    try {
+      const result = await createApplication({
+        jobId: job.id,
+        coverLetter: `Me interesa mucho este proyecto. Tengo experiencia en ${job.skills?.join(', ')} y creo que puedo aportar valor significativo.`,
+        proposedRate: job.budget?.max || 0,
+        estimatedDuration: job.duration || '2-4 semanas'
+      });
+      
+      if (result.success) {
+        alert('¡Aplicación enviada exitosamente!');
+        // Actualizar el estado del trabajo para mostrar que ya se aplicó
+        setJobs(prev => prev.map(j => 
+          j.id === job.id ? { ...j, hasApplied: true } : j
+        ));
+      } else {
+        alert('Error al enviar la aplicación: ' + result.message);
+      }
+    } catch (error) {
+      alert('Error al enviar la aplicación');
+    } finally {
+      setApplyingJob(null);
     }
   };
 
-  const getPriorityText = (priority: string) => {
-    switch (priority) {
-      case 'high': return 'Alta';
-      case 'medium': return 'Media';
-      case 'low': return 'Baja';
-      default: return priority;
+  const handleSaveJob = async (job: Job) => {
+    setSavingJob(job.id);
+    try {
+      if (job.isSaved) {
+        const result = await unsaveJob(job.id);
+        if (result.success) {
+          alert('Trabajo eliminado de favoritos');
+          setJobs(prev => prev.map(j => 
+            j.id === job.id ? { ...j, isSaved: false } : j
+          ));
+        } else {
+          alert('Error al eliminar de favoritos: ' + result.message);
+        }
+      } else {
+        const result = await saveJob(job.id);
+        if (result.success) {
+          alert('Trabajo guardado en favoritos');
+          setJobs(prev => prev.map(j => 
+            j.id === job.id ? { ...j, isSaved: true } : j
+          ));
+        } else {
+          alert('Error al guardar trabajo: ' + result.message);
+        }
+      }
+    } catch (error) {
+      alert('Error al guardar trabajo');
+    } finally {
+      setSavingJob(null);
     }
   };
+
+  const handleViewDetails = (job: Job) => {
+    router.push(`/profesional/jobs/${job.id}`);
+  };
+
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-7xl">
+        <PageBreadcrumb pageTitle="Búsqueda de Trabajos" />
+        <ComponentCard title="Cargando trabajos">
+          <div className="text-center py-8">
+            <p className="text-gray-500">Cargando trabajos disponibles...</p>
+          </div>
+        </ComponentCard>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-7xl">
@@ -159,7 +218,7 @@ const FreelancerJobsSearchPage = () => {
         <ComponentCard title="Resultados">
           <div className="flex justify-between items-center mb-4">
             <p className="text-gray-600 dark:text-gray-400">
-              Se encontraron {filteredProjects.length} trabajos disponibles
+              Se encontraron {filteredJobs.length} trabajos disponibles
             </p>
             <div className="flex gap-2">
               <Button variant="outline" size="sm">
@@ -171,25 +230,30 @@ const FreelancerJobsSearchPage = () => {
 
         {/* Lista de trabajos */}
         <div className="space-y-6">
-          {filteredProjects.map((project) => (
-            <ComponentCard key={project.id} title={project.title}>
+          {filteredJobs.map((job) => (
+            <ComponentCard key={job.id} title={job.title}>
               <div className="flex flex-col lg:flex-row gap-6">
                 <div className="flex-1">
                   <div className="flex items-start justify-between mb-4">
                     <div>
                       <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                        {project.title}
+                        {job.title}
                       </h3>
                       <p className="text-gray-600 dark:text-gray-400 mb-3">
-                        {project.description}
+                        {job.description}
                       </p>
                     </div>
                     <div className="flex flex-col items-end gap-2">
-                      <Badge color={getPriorityColor(project.priority)}>
-                        {getPriorityText(project.priority)}
+                      <Badge color={job.isUrgent ? 'error' : 'success'}>
+                        {job.isUrgent ? 'Urgente' : 'Normal'}
                       </Badge>
+                      {job.hasApplied && (
+                        <Badge color="primary">
+                          Ya aplicaste
+                        </Badge>
+                      )}
                       <span className="text-sm text-gray-500">
-                        {new Date(project.created_at).toLocaleDateString()}
+                        {new Date(job.createdAt).toLocaleDateString()}
                       </span>
                     </div>
                   </div>
@@ -198,17 +262,17 @@ const FreelancerJobsSearchPage = () => {
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-500">Empresa:</span>
-                        <span className="font-medium">{project.company_name}</span>
+                        <span className="font-medium">{job.companyName || 'Empresa'}</span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-500">Presupuesto:</span>
                         <span className="font-medium">
-                          ${project.budget.min.toLocaleString()} - ${project.budget.max.toLocaleString()} {project.budget.currency}
+                          ${job.budget?.min?.toLocaleString() || 0} - ${job.budget?.max?.toLocaleString() || 0} {job.budget?.currency || 'USD'}
                         </span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-500">Duración estimada:</span>
-                        <span className="font-medium">2-4 semanas</span>
+                        <span className="font-medium">{job.duration || '2-4 semanas'}</span>
                       </div>
                     </div>
                     
@@ -223,7 +287,7 @@ const FreelancerJobsSearchPage = () => {
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-500">Ubicación:</span>
-                        <span className="font-medium">Remoto</span>
+                        <span className="font-medium">{job.location || 'Remoto'}</span>
                       </div>
                     </div>
                   </div>
@@ -231,14 +295,14 @@ const FreelancerJobsSearchPage = () => {
                   <div className="mb-4">
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Habilidades requeridas:</span>
                     <div className="flex flex-wrap gap-1 mt-1">
-                      {project.skills.slice(0, 5).map((skill, index) => (
+                      {job.skills && job.skills.slice(0, 5).map((skill: string, index: number) => (
                         <Badge key={index} color="light" size="sm">
                           {skill}
                         </Badge>
                       ))}
-                      {project.skills.length > 5 && (
+                      {job.skills && job.skills.length > 5 && (
                         <Badge color="light" size="sm">
-                          +{project.skills.length - 5} más
+                          +{job.skills.length - 5} más
                         </Badge>
                       )}
                     </div>
@@ -248,21 +312,23 @@ const FreelancerJobsSearchPage = () => {
                 <div className="flex flex-col gap-2 lg:w-48">
                   <Button
                     variant="primary"
-                    onClick={() => handleApplyToJob(project)}
+                    onClick={() => handleApplyToJob(job)}
+                    disabled={applyingJob === job.id || job.hasApplied}
                     className="w-full"
                   >
-                    Aplicar Ahora
+                    {applyingJob === job.id ? 'Aplicando...' : job.hasApplied ? 'Ya Aplicaste' : 'Aplicar Ahora'}
                   </Button>
                   <Button
                     variant="outline"
-                    onClick={() => handleSaveJob(project)}
+                    onClick={() => handleSaveJob(job)}
+                    disabled={savingJob === job.id}
                     className="w-full"
                   >
-                    Guardar
+                    {savingJob === job.id ? 'Guardando...' : job.isSaved ? 'Guardado' : 'Guardar'}
                   </Button>
                   <Button
                     variant="ghost"
-                    onClick={() => handleViewDetails(project)}
+                    onClick={() => handleViewDetails(job)}
                     className="w-full"
                   >
                     Ver Detalles
@@ -273,7 +339,7 @@ const FreelancerJobsSearchPage = () => {
           ))}
         </div>
 
-        {filteredProjects.length === 0 && (
+        {filteredJobs.length === 0 && (
           <ComponentCard title="Sin Trabajos Encontrados">
             <div className="text-center py-8">
               <p className="text-gray-500 dark:text-gray-400">
@@ -284,7 +350,7 @@ const FreelancerJobsSearchPage = () => {
         )}
 
         {/* Paginación */}
-        {filteredProjects.length > 10 && (
+        {filteredJobs.length > 10 && (
           <ComponentCard title="Paginación">
             <div className="flex justify-center">
               <div className="flex gap-2">

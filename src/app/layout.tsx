@@ -12,6 +12,7 @@ import { SupportProvider } from '@/context/SupportContext';
 import { AIProvider } from '@/context/AIContext';
 import { NotificationProvider } from '@/context/NotificationContext';
 import { TalentProvider } from '@/context/TalentContext';
+import { ChatProvider } from '@/context/ChatContext';
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -36,7 +37,9 @@ export default function RootLayout({
                         <AIProvider>
                           <NotificationProvider>
                             <SidebarProvider>
-                              {children}
+                              <ChatProvider>
+                                {children}
+                              </ChatProvider>
                             </SidebarProvider>
                           </NotificationProvider>
                         </AIProvider>

@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@bytescale/upload-widget-react": "^4.19.0",
     "@fullcalendar/core": "^6.1.15",
     "@fullcalendar/daygrid": "^6.1.15",
     "@fullcalendar/interaction": "^6.1.15",
@@ -24,6 +25,7 @@
     "apexcharts": "^4.3.0",
     "autoprefixer": "^10.4.20",
     "axios": "^1.11.0",
+    "date-fns": "^4.1.0",
     "ethers": "^6.15.0",
     "flatpickr": "^4.6.13",
     "googleapis": "^154.0.0",
@@ -38,8 +40,11 @@
     "react-dropzone": "^14.3.5",
     "react-feather": "^2.0.10",
     "react-icons": "^5.5.0",
+    "react-image-crop": "^11.0.10",
     "react-markdown": "^10.1.0",
     "recharts": "^3.1.0",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1",
     "swiper": "^11.2.0",
     "tailwind-merge": "^2.6.0"
   },
