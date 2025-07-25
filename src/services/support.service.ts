@@ -1,85 +1,195 @@
 import api from '@/util/axios';
 
+// Interfaz que coincide con la respuesta real del backend
 export interface Ticket {
   id: string;
-  user_id: string;
+  key: string; // Ej: "SUP-123"
   title: string;
-  description: string;
-  category: 'technical' | 'billing' | 'general' | 'bug' | 'feature';
-  priority: 'low' | 'medium' | 'high' | 'urgent';
-  status: 'open' | 'in-progress' | 'resolved' | 'closed';
-  assigned_to?: string;
-  created_at: string;
-  updated_at: string;
-  resolved_at?: string;
+  description?: string;
+  priority: 'HIGHEST' | 'HIGH' | 'MEDIUM' | 'LOW' | 'LOWEST';
+  status: string; // 'OPEN', 'CLOSED', etc.
+  projectName?: string;
+  createdAt: string;
+  updatedAt: string;
+  closedAt?: string;
+  
+  // Relaciones
+  creator: {
+    id: string;
+    fullName: string;
+    email: string;
+    avatar?: string;
+  };
+  creatorId: string;
+  
+  assignee?: {
+    id: string;
+    fullName: string;
+    email: string;
+    avatar?: string;
+  };
+  assigneeId?: string;
+  
+  workspaceId: string;
+  
+  messages: TicketMessage[];
+  attachments: TicketAttachment[];
+}
+
+export interface TicketMessage {
+  id: string;
+  content: string;
+  mentions: string[];
+  createdAt: string;
+  updatedAt: string;
+  userId: string;
+  user: {
+    id: string;
+    fullName: string;
+    email: string;
+    avatar?: string;
+  };
+  attachments: TicketMessageAttachment[];
+}
+
+export interface TicketAttachment {
+  id: string;
+  filename: string;
+  url: string;
+  size: number;
+  mimeType: string;
+  createdAt: string;
+}
+
+export interface TicketMessageAttachment {
+  id: string;
+  filename: string;
+  url: string;
+  size: number;
+  mimeType: string;
+  createdAt: string;
 }
 
 export interface CreateTicketData {
-  user_id: string;
   title: string;
-  description: string;
-  category: 'technical' | 'billing' | 'general' | 'bug' | 'feature';
-  priority: 'low' | 'medium' | 'high' | 'urgent';
+  description?: string;
+  priority: 'HIGHEST' | 'HIGH' | 'MEDIUM' | 'LOW' | 'LOWEST';
+  projectName?: string;
+}
+
+export interface CreateTicketMessageData {
+  content: string;
+  mentions?: string[];
+}
+
+export interface UpdateTicketData {
+  title?: string;
+  description?: string;
+  priority?: 'HIGHEST' | 'HIGH' | 'MEDIUM' | 'LOW' | 'LOWEST';
+  status?: string;
+  projectName?: string;
+  assigneeId?: string;
 }
 
 export const supportService = {
-  // Obtener todos los tickets
+  // Obtener todos los tickets (para admin)
   async getAllTickets(): Promise<Ticket[]> {
-    const response = await api.get('/support/tickets');
+    const response = await api.get('/tickets');
     return response.data;
   },
 
   // Obtener ticket por ID
   async getTicketById(id: string): Promise<Ticket> {
-    const response = await api.get(`/support/tickets/${id}`);
-    return response.data;
-  },
-
-  // Obtener tickets por usuario
-  async getTicketsByUser(userId: string): Promise<Ticket[]> {
-    const response = await api.get(`/support/tickets/user/${userId}`);
+    const response = await api.get(`/tickets/${id}`);
     return response.data;
   },
 
   // Crear nuevo ticket
-  async createTicket(ticketData: CreateTicketData): Promise<string> {
-    const response = await api.post('/support/tickets', ticketData);
-    return response.data.id;
+  async createTicket(ticketData: CreateTicketData, files?: File[]): Promise<Ticket> {
+    const formData = new FormData();
+    
+    // Agregar datos del ticket
+    Object.entries(ticketData).forEach(([key, value]) => {
+      if (value !== undefined) {
+        formData.append(key, value);
+      }
+    });
+    
+    // Agregar archivos si existen
+    if (files && files.length > 0) {
+      files.forEach((file) => {
+        formData.append('files', file);
+      });
+    }
+    
+    const response = await api.post('/tickets', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
   },
 
   // Actualizar ticket
-  async updateTicket(id: string, updateData: Partial<Ticket>): Promise<Ticket> {
-    const response = await api.put(`/support/tickets/${id}`, updateData);
+  async updateTicket(id: string, updateData: UpdateTicketData): Promise<Ticket> {
+    const response = await api.patch(`/tickets/${id}`, updateData);
     return response.data;
   },
 
   // Eliminar ticket
   async deleteTicket(id: string): Promise<void> {
-    await api.delete(`/support/tickets/${id}`);
+    await api.delete(`/tickets/${id}`);
   },
 
-  // Cambiar estado del ticket
-  async updateTicketStatus(id: string, status: Ticket['status']): Promise<Ticket> {
-    const response = await api.put(`/support/tickets/${id}/status`, { status });
+  // Asignar ticket a un usuario
+  async assignTicket(id: string, assigneeId: string): Promise<Ticket> {
+    const response = await api.patch(`/tickets/${id}/assign`, { assigneeId });
     return response.data;
   },
 
-  // Asignar ticket a un agente
-  async assignTicket(id: string, agentId: string): Promise<Ticket> {
-    const response = await api.put(`/support/tickets/${id}/assign`, { agent_id: agentId });
+  // Agregar mensaje a un ticket
+  async addMessage(ticketId: string, messageData: CreateTicketMessageData, files?: File[]): Promise<TicketMessage> {
+    const formData = new FormData();
+    
+    // Agregar datos del mensaje
+    formData.append('content', messageData.content);
+    if (messageData.mentions && messageData.mentions.length > 0) {
+      formData.append('mentions', JSON.stringify(messageData.mentions));
+    }
+    
+    // Agregar archivos si existen
+    if (files && files.length > 0) {
+      files.forEach((file) => {
+        formData.append('attachments', file);
+      });
+    }
+    
+    const response = await api.post(`/tickets/${ticketId}/messages`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     return response.data;
   },
 
-  // Obtener estadísticas de tickets
-  async getTicketStats(userId?: string): Promise<{
+  // Obtener estadísticas básicas (calculadas en el frontend)
+  async getTicketStats(): Promise<{
     total: number;
     open: number;
-    in_progress: number;
-    resolved: number;
     closed: number;
+    assigned: number;
+    unassigned: number;
   }> {
-    const url = userId ? `/support/tickets/stats/${userId}` : '/support/tickets/stats';
-    const response = await api.get(url);
-    return response.data;
+    const tickets = await this.getAllTickets();
+    
+    const stats = {
+      total: tickets.length,
+      open: tickets.filter(t => t.status === 'OPEN').length,
+      closed: tickets.filter(t => t.status === 'CLOSED').length,
+      assigned: tickets.filter(t => t.assigneeId).length,
+      unassigned: tickets.filter(t => !t.assigneeId).length,
+    };
+    
+    return stats;
   },
 }; 

@@ -69,27 +69,87 @@ export const TalentProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const loadProjects = async () => {
     try {
       setLoading(true);
-      const jobs = await jobsService.getAllJobs();
+      let projectList: Project[] = [];
       
-      // Convertir jobs a Project (simplificado)
-      const projectList: Project[] = jobs.map(job => ({
-        id: job.id,
-        title: job.title,
-        description: job.description,
-        company_id: job.companyId || '',
-        company_name: job.companyName || '',
-        status: 'draft', // Usar un valor por defecto
-        priority: 'medium',
-        start_date: job.createdAt || new Date().toISOString(),
-        budget: job.budget || { min: 0, max: 0, currency: 'USD' },
-        skills: job.skills || [],
-        requirements: job.requirements || [],
-        tasks: [],
-        professionals: [],
-        contracts: [],
-        created_at: job.createdAt || new Date().toISOString(),
-        updated_at: job.updatedAt || new Date().toISOString(),
-      }));
+      if (user?.role === 'EMPRESA') {
+        // Para empresas, cargar sus trabajos
+        try {
+          const companyJobs = await jobsService.getJobsByCompany();
+          projectList = companyJobs.map(job => ({
+            id: job.id,
+            title: job.title,
+            description: job.description,
+            company_id: job.companyId || '',
+            company_name: job.companyName || '',
+            status: 'draft', // Usar un valor por defecto
+            priority: 'medium',
+            start_date: job.createdAt || new Date().toISOString(),
+            budget: job.budget || { min: 0, max: 0, currency: 'USD' },
+            skills: job.skills || [],
+            requirements: job.requirements || [],
+            tasks: [],
+            professionals: [],
+            contracts: [],
+            created_at: job.createdAt || new Date().toISOString(),
+            updated_at: job.updatedAt || new Date().toISOString(),
+          }));
+        } catch (error) {
+          console.error('Error loading company jobs:', error);
+        }
+      } else if (user?.role === 'PROFESIONAL') {
+        // Para freelancers, cargar todos los trabajos disponibles
+        try {
+          const jobs = await jobsService.getAllJobs();
+          projectList = jobs.map(job => ({
+            id: job.id,
+            title: job.title,
+            description: job.description,
+            company_id: job.companyId || '',
+            company_name: job.companyName || '',
+            status: 'draft', // Usar un valor por defecto
+            priority: 'medium',
+            start_date: job.createdAt || new Date().toISOString(),
+            budget: job.budget || { min: 0, max: 0, currency: 'USD' },
+            skills: job.skills || [],
+            requirements: job.requirements || [],
+            tasks: [],
+            professionals: [],
+            contracts: [],
+            created_at: job.createdAt || new Date().toISOString(),
+            updated_at: job.updatedAt || new Date().toISOString(),
+          }));
+        } catch (error) {
+          console.error('Error loading all jobs:', error);
+        }
+      } else if (user?.role === 'ADMIN') {
+        // Para admin, cargar todos los trabajos
+        try {
+          const jobs = await jobsService.getAllJobs();
+          projectList = jobs.map(job => ({
+            id: job.id,
+            title: job.title,
+            description: job.description,
+            company_id: job.companyId || '',
+            company_name: job.companyName || '',
+            status: 'draft', // Usar un valor por defecto
+            priority: 'medium',
+            start_date: job.createdAt || new Date().toISOString(),
+            budget: job.budget || { min: 0, max: 0, currency: 'USD' },
+            skills: job.skills || [],
+            requirements: job.requirements || [],
+            tasks: [],
+            professionals: [],
+            contracts: [],
+            created_at: job.createdAt || new Date().toISOString(),
+            updated_at: job.updatedAt || new Date().toISOString(),
+          }));
+        } catch (error) {
+          console.error('Error loading all jobs for admin:', error);
+        }
+      } else {
+        // Para otros roles, no cargar proyectos
+        projectList = [];
+      }
       
       setProjects(projectList);
     } catch (error) {
@@ -108,15 +168,33 @@ export const TalentProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       
       if (user?.role === 'EMPRESA') {
         // Para empresas, cargar aplicaciones de sus proyectos
-        const companyJobs = await jobsService.getJobsByCompany();
-        for (const job of companyJobs) {
-          const jobApplications = await applicationsService.getJobApplications(job.id);
-          allApplications.push(...jobApplications);
+        try {
+          const companyJobs = await jobsService.getJobsByCompany();
+          for (const job of companyJobs) {
+            try {
+              const jobApplications = await applicationsService.getJobApplications(job.id);
+              allApplications.push(...jobApplications);
+            } catch (error) {
+              console.error(`Error loading applications for job ${job.id}:`, error);
+            }
+          }
+        } catch (error) {
+          console.error('Error loading company jobs:', error);
         }
-      } else {
+      } else if (user?.role === 'PROFESIONAL') {
         // Para freelancers, cargar sus aplicaciones
-        const userApplications = await applicationsService.getMyApplications();
-        allApplications = userApplications;
+        try {
+          const userApplications = await applicationsService.getMyApplications();
+          allApplications = userApplications;
+        } catch (error) {
+          console.error('Error loading professional applications:', error);
+        }
+      } else if (user?.role === 'ADMIN') {
+        // Para admin, no cargar aplicaciones por defecto (pueden acceder desde el panel de admin)
+        allApplications = [];
+      } else {
+        // Para otros roles, no cargar aplicaciones
+        allApplications = [];
       }
       
       setApplications(allApplications);

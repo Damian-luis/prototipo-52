@@ -34,48 +34,26 @@ const navItems: NavItem[] = [
   },
   {
     icon: <UserCircle />,
-    name: "Gestión de Talento",
-    subItems: [
-      { name: "Ofertas de Trabajo", path: "/admin/others-pages/talent/jobs" },
-      { name: "Freelancers Recomendados", path: "/admin/others-pages/talent/recommendations" },
-      { name: "Seguimiento de Procesos", path: "/admin/others-pages/talent/tracking" },
-    ],
-  },
-  {
-    icon: <BoxCubeIcon />,
-    name: "Contratos y Pagos",
-    subItems: [
-      { name: "Contratos", path: "/admin/others-pages/contracts" },
-      { name: "Pagos", path: "/admin/others-pages/payments" },
-    ],
+    name: "Gestión de Usuarios",
+    path: "/admin/users",
   },
   {
     icon: <CalenderLine />,
     name: "Soporte Técnico",
-    path: "/admin/others-pages/support",
-  },
-  {
-    icon: <PieChart />,
-    name: "Recomendaciones Inteligentes",
-    path: "/admin/others-pages/ai-recommendations",
+    path: "/admin/support",
   },
   {
     icon: <Table />,
     name: "Reportes",
     subItems: [
-      { name: "Reportes Generales", path: "/admin/others-pages/reports" },
-      { name: "Exportar", path: "/admin/others-pages/reports/export" },
+      { name: "Reportes Generales", path: "/admin/reports" },
+      { name: "Exportar", path: "/admin/reports/export" },
     ],
-  },
-  {
-    icon: <PlugIn />,
-    name: "Integraciones",
-    path: "/admin/others-pages/integrations",
   },
   {
     icon: <UserCircle />,
     name: "Perfil",
-    path: "/admin/others-pages/profile",
+    path: "/admin/profile",
   },
 ];
 

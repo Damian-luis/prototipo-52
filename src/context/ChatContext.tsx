@@ -329,10 +329,19 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     if (isConnected && user) {
       const loadRooms = async () => {
         try {
+          setIsLoading(true);
           const userRooms = await chatService.getRooms();
           setRooms(userRooms);
-        } catch (error) {
+        } catch (error: any) {
           console.error('Error loading rooms:', error);
+          // No mostrar error si es un error de red, solo log
+          if (error.code === 'NETWORK_ERROR' || error.message === 'Network Error') {
+            console.log('Chat service not available, skipping room loading');
+          } else {
+            setError('Error al cargar las salas de chat');
+          }
+        } finally {
+          setIsLoading(false);
         }
       };
       loadRooms();

@@ -1,33 +1,18 @@
 "use client";
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { supportService, Ticket } from '@/services/support.service';
+import { supportService, Ticket, CreateTicketData } from '@/services/support.service';
 import { useAuth } from './AuthContext';
-
-export interface TicketMessage {
-  id: string;
-  ticket_id: string;
-  user_id: string;
-  user_name: string;
-  message: string;
-  is_internal: boolean;
-  created_at: string;
-}
 
 interface SupportContextType {
   tickets: Ticket[];
   loading: boolean;
-  createTicket: (ticketData: {
-    user_id: string;
-    title: string;
-    description: string;
-    category: 'technical' | 'billing' | 'general' | 'bug' | 'feature';
-    priority: 'low' | 'medium' | 'high' | 'urgent';
-  }) => Promise<{ success: boolean; message: string; ticketId?: string }>;
-  updateTicketStatus: (ticketId: string, status: Ticket['status']) => Promise<{ success: boolean; message: string }>;
+  createTicket: (ticketData: CreateTicketData) => Promise<{ success: boolean; message: string; ticket?: Ticket }>;
+  updateTicket: (ticketId: string, updateData: any) => Promise<{ success: boolean; message: string }>;
   getTicketsByUser: (userId: string) => Ticket[];
-  getTicketsByStatus: (status: Ticket['status']) => Ticket[];
+  getTicketsByStatus: (status: string) => Ticket[];
   getTicketById: (ticketId: string) => Ticket | undefined;
   loadTickets: () => Promise<void>;
+  loadAllTickets: () => Promise<void>; // Para admin
 }
 
 const SupportContext = createContext<SupportContextType | undefined>(undefined);
@@ -37,13 +22,17 @@ export const SupportProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
 
-  // Cargar tickets al iniciar
+  // Cargar tickets del usuario actual
   const loadTickets = async () => {
     if (!user?.id) return;
     
     setLoading(true);
     try {
-      const userTickets = await supportService.getTicketsByUser(user.id);
+      // Para usuarios normales, cargar todos los tickets y filtrar por los que crearon o les fueron asignados
+      const allTickets = await supportService.getAllTickets();
+      const userTickets = allTickets.filter(ticket => 
+        ticket.creatorId === user.id || ticket.assigneeId === user.id
+      );
       setTickets(userTickets);
     } catch (error) {
       console.error('Error loading tickets:', error);
@@ -52,62 +41,62 @@ export const SupportProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   };
 
+  // Cargar todos los tickets (para admin)
+  const loadAllTickets = async () => {
+    setLoading(true);
+    try {
+      const allTickets = await supportService.getAllTickets();
+      setTickets(allTickets);
+    } catch (error) {
+      console.error('Error loading all tickets:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (user?.id) {
-      loadTickets();
+      // Si es admin, cargar todos los tickets, sino solo los del usuario
+      if (user.role === 'ADMIN') {
+        loadAllTickets();
+      } else {
+        loadTickets();
+      }
     }
-  }, [user?.id]);
+  }, [user?.id, user?.role]);
 
-  const createTicket = async (ticketData: {
-    user_id: string;
-    title: string;
-    description: string;
-    category: 'technical' | 'billing' | 'general' | 'bug' | 'feature';
-    priority: 'low' | 'medium' | 'high' | 'urgent';
-  }): Promise<{ success: boolean; message: string; ticketId?: string }> => {
+  const createTicket = async (ticketData: CreateTicketData): Promise<{ success: boolean; message: string; ticket?: Ticket }> => {
     try {
-      const ticketId = await supportService.createTicket(ticketData);
-      
-      const newTicket: Ticket = {
-        id: ticketId,
-        user_id: ticketData.user_id,
-        title: ticketData.title,
-        description: ticketData.description,
-        category: ticketData.category,
-        priority: ticketData.priority,
-        status: 'open',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
+      const newTicket = await supportService.createTicket(ticketData);
       
       setTickets(prev => [newTicket, ...prev]);
       
-      return { success: true, message: 'Ticket creado exitosamente', ticketId };
+      return { success: true, message: 'Ticket creado exitosamente', ticket: newTicket };
     } catch (error) {
       console.error('Error creating ticket:', error);
       return { success: false, message: 'Error al crear el ticket' };
     }
   };
 
-  const updateTicketStatus = async (ticketId: string, status: Ticket['status']): Promise<{ success: boolean; message: string }> => {
+  const updateTicket = async (ticketId: string, updateData: any): Promise<{ success: boolean; message: string }> => {
     try {
-      const updatedTicket = await supportService.updateTicketStatus(ticketId, status);
+      const updatedTicket = await supportService.updateTicket(ticketId, updateData);
       
       setTickets(prev => prev.map(ticket => 
-        ticket.id === ticketId ? { ...ticket, ...updatedTicket } : ticket
+        ticket.id === ticketId ? updatedTicket : ticket
       ));
       
-      return { success: true, message: 'Estado del ticket actualizado' };
+      return { success: true, message: 'Ticket actualizado exitosamente' };
     } catch (error) {
-      console.error('Error updating ticket status:', error);
+      console.error('Error updating ticket:', error);
       return { success: false, message: 'Error al actualizar el ticket' };
     }
   };
 
   const getTicketsByUser = (userId: string) => 
-    tickets.filter(t => t.user_id === userId);
+    tickets.filter(t => t.creatorId === userId || t.assigneeId === userId);
 
-  const getTicketsByStatus = (status: Ticket['status']) => 
+  const getTicketsByStatus = (status: string) => 
     tickets.filter(t => t.status === status);
 
   const getTicketById = (ticketId: string) => 
@@ -117,11 +106,12 @@ export const SupportProvider: React.FC<{ children: ReactNode }> = ({ children })
     tickets,
     loading,
     createTicket,
-    updateTicketStatus,
+    updateTicket,
     getTicketsByUser,
     getTicketsByStatus,
     getTicketById,
     loadTickets,
+    loadAllTickets,
   };
 
   return (

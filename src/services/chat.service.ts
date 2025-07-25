@@ -1,4 +1,4 @@
-import axios from 'axios';
+import api from '@/util/axios';
 
 export interface ChatMessage {
   id: string;
@@ -51,18 +51,11 @@ export interface ChatUser {
   lastSeen?: string;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-
 const chatService = {
   // Obtener todas las salas de chat del usuario
   async getRooms(): Promise<ChatRoom[]> {
     try {
-      const token = localStorage.getItem('authToken');
-      const response = await axios.get(`${API_BASE_URL}/chat/rooms`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await api.get('/chat/rooms');
       return response.data;
     } catch (error) {
       console.error('Error fetching chat rooms:', error);
@@ -73,12 +66,7 @@ const chatService = {
   // Crear una nueva sala de chat
   async createRoom(data: CreateRoomRequest): Promise<ChatRoom> {
     try {
-      const token = localStorage.getItem('authToken');
-      const response = await axios.post(`${API_BASE_URL}/chat/rooms`, data, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await api.post('/chat/rooms', data);
       return response.data;
     } catch (error) {
       console.error('Error creating chat room:', error);
@@ -89,12 +77,7 @@ const chatService = {
   // Obtener mensajes de una sala específica
   async getRoomMessages(roomId: string): Promise<ChatMessage[]> {
     try {
-      const token = localStorage.getItem('authToken');
-      const response = await axios.get(`${API_BASE_URL}/chat/rooms/${roomId}/messages`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await api.get(`/chat/rooms/${roomId}/messages`);
       return response.data;
     } catch (error) {
       console.error('Error fetching room messages:', error);
@@ -105,12 +88,7 @@ const chatService = {
   // Enviar un mensaje
   async sendMessage(data: SendMessageRequest): Promise<ChatMessage> {
     try {
-      const token = localStorage.getItem('authToken');
-      const response = await axios.post(`${API_BASE_URL}/chat/messages`, data, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await api.post('/chat/messages', data);
       return response.data;
     } catch (error) {
       console.error('Error sending message:', error);
@@ -121,12 +99,7 @@ const chatService = {
   // Marcar mensajes como leídos
   async markMessagesAsRead(roomId: string): Promise<void> {
     try {
-      const token = localStorage.getItem('authToken');
-      await axios.put(`${API_BASE_URL}/chat/rooms/${roomId}/read`, {}, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      await api.put(`/chat/rooms/${roomId}/read`, {});
     } catch (error) {
       console.error('Error marking messages as read:', error);
       throw error;
@@ -136,12 +109,7 @@ const chatService = {
   // Obtener usuarios disponibles para chat
   async getAvailableUsers(): Promise<ChatUser[]> {
     try {
-      const token = localStorage.getItem('authToken');
-      const response = await axios.get(`${API_BASE_URL}/chat/users`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await api.get('/chat/users');
       return response.data;
     } catch (error) {
       console.error('Error fetching available users:', error);
@@ -152,13 +120,11 @@ const chatService = {
   // Subir archivo para chat
   async uploadFile(file: File): Promise<{ url: string; fileName: string; fileSize: number }> {
     try {
-      const token = localStorage.getItem('authToken');
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await axios.post(`${API_BASE_URL}/chat/upload`, formData, {
+      const response = await api.post('/chat/upload', formData, {
         headers: {
-          Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data',
         },
       });
@@ -176,12 +142,7 @@ const chatService = {
     totalMessages: number;
   }> {
     try {
-      const token = localStorage.getItem('authToken');
-      const response = await axios.get(`${API_BASE_URL}/chat/stats`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await api.get('/chat/stats');
       return response.data;
     } catch (error) {
       console.error('Error fetching chat stats:', error);
