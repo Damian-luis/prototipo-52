@@ -8,6 +8,7 @@ import ComponentCard from "@/components/common/ComponentCard";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import Badge from "@/components/ui/badge/Badge";
+import { showError } from '@/util/notifications';
 import { 
   Plus, 
   X, 
@@ -164,13 +165,13 @@ const CreateJobPage = () => {
       const result = await createJob(jobData);
       
       if (result.success) {
-        alert("Borrador guardado exitosamente");
+        showError('Borrador guardado exitosamente');
         router.push("/empresa/proyectos");
       } else {
-        alert("Error al guardar el borrador: " + result.message);
+        showError("Error al guardar el borrador: " + result.message);
       }
     } catch (error) {
-      alert("Error al guardar el borrador");
+      showError('Error al guardar el borrador');
     } finally {
       setIsSubmitting(false);
     }
@@ -192,13 +193,13 @@ const CreateJobPage = () => {
       const result = await createJob(jobData);
       
       if (result.success) {
-        alert("Oferta publicada exitosamente");
+        showError('Oferta publicada exitosamente');
         router.push("/empresa/proyectos");
       } else {
-        alert("Error al publicar la oferta: " + result.message);
+        showError("Error al publicar la oferta: " + result.message);
       }
     } catch (error) {
-      alert("Error al publicar la oferta");
+      showError('Error al publicar la oferta');
     } finally {
       setIsSubmitting(false);
     }

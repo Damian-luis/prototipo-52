@@ -7,6 +7,7 @@ import TextArea from "@/components/form/input/TextArea";
 import Label from "@/components/form/Label";
 import { AIConsultation, AIRecommendation } from "@/context/AIContext";
 import ReactMarkdown from 'react-markdown';
+import { showError } from '@/util/notifications';
 
 const AIAssistantPage = () => {
   const { 
@@ -60,7 +61,7 @@ const AIAssistantPage = () => {
           await generateCareerAdvice(user.id, user.skills || [], 3);
           setRecommendations(getRecommendationsByUser(user.id));
         } catch (error) {
-          alert("Error al generar consejos");
+          showError('Error al generar consejos');
         } finally {
           setLoading(false);
         }
@@ -76,7 +77,7 @@ const AIAssistantPage = () => {
           await generatePricingRecommendation(user.skills || [], 3, "US");
           setRecommendations(getRecommendationsByUser(user.id));
         } catch (error) {
-          alert("Error al calcular tarifas");
+          showError('Error al calcular tarifas');
         } finally {
           setLoading(false);
         }
@@ -112,7 +113,7 @@ const AIAssistantPage = () => {
       await rateConsultation(consultationId, helpful);
       setConsultations(getConsultationsByUser(user?.id || ""));
     } catch (error) {
-      alert("Error al enviar tu calificación");
+      showError('Error al enviar tu calificación');
     }
   };
 

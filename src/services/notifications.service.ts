@@ -1,68 +1,60 @@
 import api from '@/util/axios';
-import { Notification } from '@/types';
 
-export interface CreateNotificationData {
-  user_id: string;
+export interface Notification {
+  id: string;
+  type: string;
   title: string;
   message: string;
-  type: 'project' | 'contract' | 'payment' | 'task' | 'consultation' | 'system';
-  is_read?: boolean;
-  data?: any;
+  metadata?: any;
+  read: boolean;
+  createdAt: string;
+}
+
+export interface NotificationStats {
+  total: number;
+  unread: number;
+  byType: Record<string, number>;
 }
 
 export const notificationsService = {
-  // Obtener todas las notificaciones
-  async getAllNotifications(): Promise<Notification[]> {
+  // Get user notifications
+  async getNotifications(): Promise<Notification[]> {
     const response = await api.get('/notifications');
     return response.data;
   },
 
-  // Obtener notificación por ID
-  async getNotificationById(id: string): Promise<Notification> {
-    const response = await api.get(`/notifications/${id}`);
+  // Get unread count
+  async getUnreadCount(): Promise<number> {
+    const response = await api.get('/notifications/unread-count');
+    return response.data.count;
+  },
+
+  // Mark notification as read
+  async markAsRead(notificationId: string): Promise<void> {
+    await api.patch(`/notifications/${notificationId}/read`);
+  },
+
+  // Mark all notifications as read
+  async markAllAsRead(): Promise<void> {
+    await api.patch('/notifications/read-all');
+  },
+
+  // Get notification stats
+  async getNotificationStats(): Promise<NotificationStats> {
+    const response = await api.get('/notifications/stats');
     return response.data;
   },
 
-  // Obtener notificaciones por usuario
-  async getNotificationsByUser(userId: string): Promise<Notification[]> {
-    const response = await api.get(`/notifications/user/${userId}`);
+  // Delete notification
+  async deleteNotification(notificationId: string): Promise<void> {
+    await api.delete(`/notifications/${notificationId}`);
+  },
+
+  // Get notifications by type
+  async getNotificationsByType(type: string): Promise<Notification[]> {
+    const response = await api.get(`/notifications/type/${type}`);
     return response.data;
   },
+};
 
-  // Crear nueva notificación
-  async createNotification(notificationData: CreateNotificationData): Promise<string> {
-    const response = await api.post('/notifications', notificationData);
-    return response.data.id;
-  },
-
-  // Actualizar notificación
-  async updateNotification(id: string, updateData: Partial<Notification>): Promise<Notification> {
-    const response = await api.put(`/notifications/${id}`, updateData);
-    return response.data;
-  },
-
-  // Eliminar notificación
-  async deleteNotification(id: string): Promise<void> {
-    await api.delete(`/notifications/${id}`);
-  },
-
-  // Marcar como leída
-  async markAsRead(id: string): Promise<void> {
-    await api.put(`/notifications/${id}/read`);
-  },
-
-  // Marcar todas como leídas para un usuario
-  async markAllAsRead(userId: string): Promise<void> {
-    await api.put(`/notifications/user/${userId}/read-all`);
-  },
-
-  // Obtener estadísticas de notificaciones
-  async getNotificationStats(userId: string): Promise<{
-    total: number;
-    unread: number;
-    read: number;
-  }> {
-    const response = await api.get(`/notifications/stats/${userId}`);
-    return response.data;
-  },
-}; 
+export default notificationsService; 

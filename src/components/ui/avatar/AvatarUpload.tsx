@@ -2,7 +2,8 @@
 import React, { useState, useRef } from "react";
 import Avatar from "./Avatar";
 import Button from "../button/Button";
-import { ImageCropModal } from "../image-crop";
+import ImageCropModal from "../image-crop/ImageCropModal";
+import { showError } from '@/util/notifications';
 
 interface AvatarUploadProps {
   currentAvatar?: string | null;
@@ -33,13 +34,13 @@ const AvatarUpload: React.FC<AvatarUploadProps> = ({
 
     // Validar tipo de archivo
     if (!file.type.startsWith("image/")) {
-      alert("Por favor selecciona una imagen válida");
+      showError("Por favor selecciona una imagen válida");
       return;
     }
 
     // Validar tamaño (máximo 10MB)
     if (file.size > 10 * 1024 * 1024) {
-      alert("La imagen debe ser menor a 10MB");
+      showError("La imagen debe ser menor a 10MB");
       return;
     }
 
@@ -67,7 +68,7 @@ const AvatarUpload: React.FC<AvatarUploadProps> = ({
       
     } catch (error) {
       console.error('Error al procesar la imagen:', error);
-      alert('Error al procesar la imagen');
+      showError('Error al procesar la imagen');
     } finally {
       setIsUploading(false);
     }

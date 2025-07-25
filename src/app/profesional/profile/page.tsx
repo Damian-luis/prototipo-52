@@ -8,6 +8,7 @@ import Badge from "@/components/ui/badge/Badge";
 import { useAuth } from "@/context/AuthContext";
 import cvService, { CVData, Education, Certification, Language } from "@/services/cv.service";
 import avatarService from "@/services/avatar.service";
+import { showError } from '@/util/notifications';
 
 export default function ProfesionalProfilePage() {
   const { user, updateProfile, updateAvatar } = useAuth();
@@ -69,13 +70,13 @@ export default function ProfesionalProfilePage() {
       if (result.success && result.avatarUrl) {
         // Actualizar el contexto de autenticación inmediatamente
         updateAvatar(result.avatarUrl);
-        alert('Foto de perfil actualizada exitosamente');
+        showError('Foto de perfil actualizada exitosamente');
       } else {
-        alert('Error al actualizar la foto de perfil: ' + result.message);
+        showError('Error al actualizar la foto de perfil: ' + result.message);
       }
     } catch (error) {
       console.error('Error al subir avatar:', error);
-      alert('Error al subir la foto de perfil');
+      showError('Error al subir la foto de perfil');
     } finally {
       setIsUploadingAvatar(false);
     }
@@ -99,11 +100,11 @@ export default function ProfesionalProfilePage() {
         cvUrl: result.url,
         cvFileName: result.fileName,
       }));
-      alert('CV subido exitosamente');
+      showError('CV subido exitosamente');
       setSelectedCV(null);
     } catch (error) {
       console.error('Error subiendo CV:', error);
-      alert('Error al subir el CV');
+      showError('Error al subir el CV');
     } finally {
       setIsUploadingCV(false);
     }
@@ -113,10 +114,10 @@ export default function ProfesionalProfilePage() {
     setIsUpdating(true);
     try {
       await cvService.updateProfessionalProfile(profileData);
-      alert("Perfil actualizado exitosamente");
+      showError('Perfil actualizado exitosamente');
     } catch (error) {
       console.error("Error actualizando perfil:", error);
-      alert("Error al actualizar el perfil");
+      showError('Error al actualizar el perfil');
     } finally {
       setIsUpdating(false);
     }

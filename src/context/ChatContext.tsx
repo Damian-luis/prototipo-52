@@ -69,7 +69,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         return;
       }
 
-      const newSocket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001', {
+      const newSocket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000', {
         auth: {
           token,
           userId: user.id,

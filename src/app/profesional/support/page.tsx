@@ -6,6 +6,7 @@ import ComponentCard from "@/components/common/ComponentCard";
 import Input from "@/components/form/input/InputField";
 import TextArea from "@/components/form/input/TextArea";
 import Label from "@/components/form/Label";
+import { showError } from '@/util/notifications';
 
 const FreelancerSupportPage = () => {
   const { tickets, createTicket, addMessage, getTicketsByUser } = useSupport();
@@ -40,7 +41,7 @@ const FreelancerSupportPage = () => {
       });
 
       if (result.success) {
-        alert("Ticket creado exitosamente");
+        showError('Ticket creado exitosamente');
         setFormData({
           subject: "",
           category: "technical",
@@ -49,10 +50,10 @@ const FreelancerSupportPage = () => {
         });
         setShowNewTicket(false);
       } else {
-        alert(result.message);
+        showError(result.message);
       }
     } catch (error) {
-      alert("Error al crear el ticket");
+      showError('Error al crear el ticket');
     }
   };
 
@@ -75,10 +76,10 @@ const FreelancerSupportPage = () => {
         const updatedTicket = tickets.find(t => t.id === selectedTicket.id);
         setSelectedTicket(updatedTicket);
       } else {
-        alert(result.message);
+        showError(result.message);
       }
     } catch (error) {
-      alert("Error al enviar el mensaje");
+      showError('Error al enviar el mensaje');
     }
   };
 

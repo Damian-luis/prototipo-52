@@ -13,6 +13,7 @@ import { AIProvider } from '@/context/AIContext';
 import { NotificationProvider } from '@/context/NotificationContext';
 import { TalentProvider } from '@/context/TalentContext';
 import { ChatProvider } from '@/context/ChatContext';
+import Toaster from '@/components/ui/Toaster';
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -39,6 +40,7 @@ export default function RootLayout({
                             <SidebarProvider>
                               <ChatProvider>
                                 {children}
+                                <Toaster />
                               </ChatProvider>
                             </SidebarProvider>
                           </NotificationProvider>

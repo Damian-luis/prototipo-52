@@ -1,6 +1,6 @@
 "use client";
 import { ThemeToggleButton } from "@/components/common/ThemeToggleButton";
-import NotificationDropdown from "@/components/header/NotificationDropdown";
+import NotificationBell from "@/components/ui/notifications/NotificationBell";
 import UserDropdown from "@/components/header/UserDropdown";
 import WalletConnect from "@/components/web3/WalletConnect";
 import { useSidebar } from "@/context/SidebarContext";
@@ -170,7 +170,7 @@ const AppHeader: React.FC = () => {
             <WalletConnect />
             {/* <!-- Web3 Wallet Connect --> */}
 
-           <NotificationDropdown /> 
+           <NotificationBell /> 
             {/* <!-- Notification Menu Area --> */}
           </div>
           {/* <!-- User Area --> */}

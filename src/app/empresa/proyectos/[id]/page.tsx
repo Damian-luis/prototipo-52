@@ -8,6 +8,7 @@ import ComponentCard from "@/components/common/ComponentCard";
 import Button from "@/components/ui/button/Button";
 import Badge from "@/components/ui/badge/Badge";
 import { Job } from "@/services/jobs.service";
+import { showError } from '@/util/notifications';
 import { 
   Calendar, 
   MapPin, 
@@ -38,7 +39,7 @@ const JobDetailsPage = () => {
         setJob(jobData);
       } catch (error) {
         console.error('Error loading job:', error);
-        alert('Error al cargar el proyecto');
+        showError('Error al cargar el proyecto');
         router.push('/empresa/proyectos');
       } finally {
         setLoading(false);
@@ -79,13 +80,13 @@ const JobDetailsPage = () => {
     try {
       const result = await updateJob(job.id, { status: 'ACTIVE' });
       if (result.success) {
-        alert('Proyecto publicado exitosamente');
+        showError('Proyecto publicado exitosamente');
         setJob({ ...job, status: 'ACTIVE' });
       } else {
-        alert('Error al publicar el proyecto: ' + result.message);
+        showError('Error al publicar el proyecto: ' + result.message);
       }
     } catch (error) {
-      alert('Error al publicar el proyecto');
+      showError('Error al publicar el proyecto');
     } finally {
       setPublishing(false);
     }

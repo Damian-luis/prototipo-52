@@ -10,6 +10,7 @@ import Badge from "@/components/ui/badge/Badge";
 import Avatar from "@/components/ui/avatar/Avatar";
 import { Application } from "@/services/applications.service";
 import { Job } from "@/services/jobs.service";
+import { showError } from '@/util/notifications';
 import { 
   Eye, 
   User, 
@@ -48,7 +49,7 @@ const JobApplicationsPage = () => {
         setApplications(applicationsData);
       } catch (error) {
         console.error('Error loading data:', error);
-        alert('Error al cargar los datos');
+        showError('Error al cargar los datos');
         router.push('/empresa/proyectos');
       } finally {
         setLoading(false);
@@ -80,12 +81,12 @@ const JobApplicationsPage = () => {
         setApplications(prev => prev.map(app => 
           app.id === applicationId ? { ...app, status: newStatus as any } : app
         ));
-        alert('Estado actualizado exitosamente');
+        showError('Estado actualizado exitosamente');
       } else {
-        alert('Error al actualizar estado: ' + result.message);
+        showError('Error al actualizar estado: ' + result.message);
       }
     } catch (error) {
-      alert('Error al actualizar estado');
+      showError('Error al actualizar estado');
     } finally {
       setUpdatingStatus(null);
     }

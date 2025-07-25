@@ -6,6 +6,7 @@ import Input from "@/components/ui/input/Input";
 import AvatarUpload from "@/components/ui/avatar/AvatarUpload";
 import { useAuth } from "@/context/AuthContext";
 import avatarService from "@/services/avatar.service";
+import { showError } from '@/util/notifications';
 
 export default function EmpresaProfilePage() {
   const { user, updateProfile, updateAvatar } = useAuth();
@@ -23,13 +24,13 @@ export default function EmpresaProfilePage() {
       if (result.success && result.avatarUrl) {
         // Actualizar el contexto de autenticación inmediatamente
         updateAvatar(result.avatarUrl);
-        alert('Logo de empresa actualizado exitosamente');
+        showError('Logo de empresa actualizado exitosamente');
       } else {
-        alert('Error al actualizar el logo: ' + result.message);
+        showError('Error al actualizar el logo: ' + result.message);
       }
     } catch (error) {
       console.error('Error al subir avatar:', error);
-      alert('Error al subir el logo de empresa');
+      showError('Error al subir el logo de empresa');
     } finally {
       setIsUploadingAvatar(false);
     }
@@ -45,10 +46,10 @@ export default function EmpresaProfilePage() {
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Mostrar mensaje de éxito
-      alert("Perfil actualizado exitosamente");
+      showError('Perfil actualizado exitosamente');
     } catch (error) {
       console.error("Error actualizando perfil:", error);
-      alert("Error al actualizar el perfil");
+      showError('Error al actualizar el perfil');
     } finally {
       setIsUpdating(false);
     }

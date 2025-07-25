@@ -8,6 +8,7 @@ import ComponentCard from "@/components/common/ComponentCard";
 import Button from "@/components/ui/button/Button";
 import Badge from "@/components/ui/badge/Badge";
 import { Job } from "@/services/jobs.service";
+import { showError } from '@/util/notifications';
 
 const FreelancerJobsSearchPage = () => {
   const { user } = useAuth();
@@ -87,16 +88,16 @@ const FreelancerJobsSearchPage = () => {
       });
       
       if (result.success) {
-        alert('¡Aplicación enviada exitosamente!');
+        showError('¡Aplicación enviada exitosamente!');
         // Actualizar el estado del trabajo para mostrar que ya se aplicó
         setJobs(prev => prev.map(j => 
           j.id === job.id ? { ...j, hasApplied: true } : j
         ));
       } else {
-        alert('Error al enviar la aplicación: ' + result.message);
+        showError('Error al enviar la aplicación: ' + result.message);
       }
     } catch (error) {
-      alert('Error al enviar la aplicación');
+      showError('Error al enviar la aplicación');
     } finally {
       setApplyingJob(null);
     }
@@ -108,26 +109,26 @@ const FreelancerJobsSearchPage = () => {
       if (job.isSaved) {
         const result = await unsaveJob(job.id);
         if (result.success) {
-          alert('Trabajo eliminado de favoritos');
+          showError('Trabajo eliminado de favoritos');
           setJobs(prev => prev.map(j => 
             j.id === job.id ? { ...j, isSaved: false } : j
           ));
         } else {
-          alert('Error al eliminar de favoritos: ' + result.message);
+          showError('Error al eliminar de favoritos: ' + result.message);
         }
       } else {
         const result = await saveJob(job.id);
         if (result.success) {
-          alert('Trabajo guardado en favoritos');
+          showError('Trabajo guardado en favoritos');
           setJobs(prev => prev.map(j => 
             j.id === job.id ? { ...j, isSaved: true } : j
           ));
         } else {
-          alert('Error al guardar trabajo: ' + result.message);
+          showError('Error al guardar trabajo: ' + result.message);
         }
       }
     } catch (error) {
-      alert('Error al guardar trabajo');
+      showError('Error al guardar trabajo');
     } finally {
       setSavingJob(null);
     }

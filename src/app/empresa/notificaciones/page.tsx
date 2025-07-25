@@ -1,28 +1,36 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { useNotification } from "@/context/NotificationContext";
+import { useNotifications } from "@/context/NotificationContext";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import ComponentCard from "@/components/common/ComponentCard";
 import Button from "@/components/ui/button/Button";
 import Badge from "@/components/ui/badge/Badge";
-import { Notification } from "@/types";
+
+interface Notification {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  metadata?: any;
+  read: boolean;
+  createdAt: string;
+}
 
 const EmpresaNotificacionesPage = () => {
   const { user } = useAuth();
-  const { notifications, markAsRead, markAllAsRead } = useNotification();
+  const { notifications, markAsRead, markAllAsRead, isLoading } = useNotifications();
   const [filteredNotifications, setFilteredNotifications] = useState<Notification[]>([]);
   const [filter, setFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     // Filtrar notificaciones del usuario actual
-    const userNotifications = notifications.filter(n => n.user_id === user?.id);
-    setFilteredNotifications(userNotifications);
-  }, [notifications, user]);
+    setFilteredNotifications(notifications);
+  }, [notifications]);
 
   useEffect(() => {
-    let filtered = notifications.filter(n => n.user_id === user?.id);
+    let filtered = notifications;
     
     if (searchTerm) {
       filtered = filtered.filter(n => 
@@ -33,14 +41,14 @@ const EmpresaNotificacionesPage = () => {
     
     if (filter !== "all") {
       if (filter === "unread") {
-        filtered = filtered.filter(n => !n.is_read);
+        filtered = filtered.filter(n => !n.read);
       } else {
         filtered = filtered.filter(n => n.type === filter);
       }
     }
     
     setFilteredNotifications(filtered);
-  }, [notifications, user, searchTerm, filter]);
+  }, [notifications, searchTerm, filter]);
 
   const handleMarkAsRead = (notificationId: string) => {
     markAsRead(notificationId);
@@ -50,47 +58,70 @@ const EmpresaNotificacionesPage = () => {
     markAllAsRead();
   };
 
-  const handleDeleteNotification = (notificationId: string) => {
-    // deleteNotification(notificationId); // This function does not exist in useNotification
-  };
-
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'project': return 'primary';
-      case 'contract': return 'secondary';
-      case 'payment': return 'success';
-      case 'task': return 'warning';
-      case 'consultation': return 'info';
-      case 'system': return 'light';
+      case 'job_application': return 'primary';
+      case 'new_job_posted': return 'secondary';
+      case 'application_status_changed': return 'success';
+      case 'new_message': return 'warning';
+      case 'company_message': return 'info';
+      case 'professional_message': return 'info';
+      case 'contract_signed': return 'success';
+      case 'payment_received': return 'success';
+      case 'payment_sent': return 'success';
+      case 'project_completed': return 'success';
+      case 'evaluation_received': return 'info';
       default: return 'light';
     }
   };
 
   const getTypeText = (type: string) => {
     switch (type) {
-      case 'project': return 'Proyecto';
-      case 'contract': return 'Contrato';
-      case 'payment': return 'Pago';
-      case 'task': return 'Tarea';
-      case 'consultation': return 'Asesoría';
-      case 'system': return 'Sistema';
+      case 'job_application': return 'Aplicación';
+      case 'new_job_posted': return 'Nueva Oferta';
+      case 'application_status_changed': return 'Estado Cambiado';
+      case 'new_message': return 'Mensaje';
+      case 'company_message': return 'Mensaje Empresa';
+      case 'professional_message': return 'Mensaje Profesional';
+      case 'contract_signed': return 'Contrato Firmado';
+      case 'payment_received': return 'Pago Recibido';
+      case 'payment_sent': return 'Pago Enviado';
+      case 'project_completed': return 'Proyecto Completado';
+      case 'evaluation_received': return 'Evaluación';
       default: return type;
     }
   };
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'project': return '📋';
-      case 'contract': return '📄';
-      case 'payment': return '💰';
-      case 'task': return '✅';
-      case 'consultation': return '💬';
-      case 'system': return '⚙️';
-      default: return '📢';
+      case 'job_application': return '📝';
+      case 'new_job_posted': return '💼';
+      case 'application_status_changed': return '🔄';
+      case 'new_message': return '💬';
+      case 'company_message': return '💬';
+      case 'professional_message': return '💬';
+      case 'contract_signed': return '📋';
+      case 'payment_received': return '💰';
+      case 'payment_sent': return '💰';
+      case 'project_completed': return '✅';
+      case 'evaluation_received': return '⭐';
+      default: return '🔔';
     }
   };
 
-  const unreadCount = filteredNotifications.filter(n => !n.is_read).length;
+  const unreadCount = filteredNotifications.filter(n => !n.read).length;
+
+  if (isLoading) {
+    return (
+      <div className="mx-auto max-w-7xl">
+        <PageBreadcrumb pageTitle="Notificaciones" />
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500 mx-auto"></div>
+          <p className="mt-2 text-gray-500">Cargando notificaciones...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-7xl">
@@ -115,12 +146,14 @@ const EmpresaNotificacionesPage = () => {
               >
                 <option value="all">Todas las notificaciones</option>
                 <option value="unread">No leídas</option>
-                <option value="project">Proyectos</option>
-                <option value="contract">Contratos</option>
-                <option value="payment">Pagos</option>
-                <option value="task">Tareas</option>
-                <option value="consultation">Asesorías</option>
-                <option value="system">Sistema</option>
+                <option value="job_application">Aplicaciones</option>
+                <option value="new_job_posted">Nuevas Ofertas</option>
+                <option value="application_status_changed">Cambios de Estado</option>
+                <option value="new_message">Mensajes</option>
+                <option value="contract_signed">Contratos</option>
+                <option value="payment_received">Pagos</option>
+                <option value="project_completed">Proyectos</option>
+                <option value="evaluation_received">Evaluaciones</option>
               </select>
             </div>
             
@@ -166,7 +199,7 @@ const EmpresaNotificacionesPage = () => {
               <p className="text-3xl font-bold text-primary-600 dark:text-primary-400">
                 {filteredNotifications.filter(n => {
                   const today = new Date().toDateString();
-                  const notificationDate = new Date(n.created_at).toDateString();
+                  const notificationDate = new Date(n.createdAt).toDateString();
                   return today === notificationDate;
                 }).length}
               </p>
@@ -182,7 +215,7 @@ const EmpresaNotificacionesPage = () => {
                 {filteredNotifications.filter(n => {
                   const weekAgo = new Date();
                   weekAgo.setDate(weekAgo.getDate() - 7);
-                  return new Date(n.created_at) >= weekAgo;
+                  return new Date(n.createdAt) >= weekAgo;
                 }).length}
               </p>
               <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -206,7 +239,7 @@ const EmpresaNotificacionesPage = () => {
             filteredNotifications.map((notification) => (
               <ComponentCard key={notification.id} title={notification.title}>
                 <div className={`flex items-start gap-4 p-4 rounded-lg transition-colors ${
-                  !notification.is_read ? 'bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500' : 'bg-gray-50 dark:bg-gray-800'
+                  !notification.read ? 'bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500' : 'bg-gray-50 dark:bg-gray-800'
                 }`}>
                   <div className="text-2xl">
                     {getTypeIcon(notification.type)}
@@ -217,14 +250,14 @@ const EmpresaNotificacionesPage = () => {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className={`font-semibold ${
-                            !notification.is_read ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'
+                            !notification.read ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'
                           }`}>
                             {notification.title}
                           </h3>
                           <Badge color={getTypeColor(notification.type)} size="sm">
                             {getTypeText(notification.type)}
                           </Badge>
-                          {!notification.is_read && (
+                          {!notification.read && (
                             <Badge color="warning" size="sm">
                               Nuevo
                             </Badge>
@@ -237,11 +270,11 @@ const EmpresaNotificacionesPage = () => {
                         
                         <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
                           <span>
-                            {new Date(notification.created_at).toLocaleString()}
+                            {new Date(notification.createdAt).toLocaleString()}
                           </span>
                           
                           <div className="flex gap-2">
-                            {!notification.is_read && (
+                            {!notification.read && (
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -251,14 +284,6 @@ const EmpresaNotificacionesPage = () => {
                                 Marcar como leída
                               </Button>
                             )}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteNotification(notification.id)}
-                              className="text-xs text-red-600 hover:text-red-700"
-                            >
-                              Eliminar
-                            </Button>
                           </div>
                         </div>
                       </div>

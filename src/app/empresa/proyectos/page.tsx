@@ -8,6 +8,7 @@ import ComponentCard from "@/components/common/ComponentCard";
 import Button from "@/components/ui/button/Button";
 import Badge from "@/components/ui/badge/Badge";
 import { Job } from "@/services/jobs.service";
+import { showError } from '@/util/notifications';
 
 const EmpresaProyectosPage = () => {
   const { user } = useAuth();
@@ -80,12 +81,12 @@ const EmpresaProyectosPage = () => {
     try {
       const result = await updateJob(jobId, { status: 'ACTIVE' });
       if (result.success) {
-        alert('Proyecto publicado exitosamente');
+        showError('Proyecto publicado exitosamente');
       } else {
-        alert('Error al publicar el proyecto: ' + result.message);
+        showError('Error al publicar el proyecto: ' + result.message);
       }
     } catch (error) {
-      alert('Error al publicar el proyecto');
+      showError('Error al publicar el proyecto');
     } finally {
       setPublishingJob(null);
     }

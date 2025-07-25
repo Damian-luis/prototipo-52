@@ -8,6 +8,7 @@ import PaymentModal from "@/components/payments/PaymentModal";
 import Link from "next/link";
 import jsPDF from "jspdf";
 import { ethers } from "ethers";
+import { showError } from '@/util/notifications';
 
 export default function ContractsPage() {
   const { contracts, signContract, createContract } = useContract();
@@ -61,11 +62,11 @@ export default function ContractsPage() {
       return;
     }
     if (!user) {
-      alert('No hay usuario autenticado');
+      showError('No hay usuario autenticado');
       return;
     }
     if (typeof window === 'undefined' || !window.ethereum) {
-      alert('No se detectó wallet/metamask');
+      showError('No se detectó wallet/metamask');
       return;
     }
     setIsSigning(true);
@@ -101,14 +102,14 @@ export default function ContractsPage() {
         }
       );
       if (result.success) {
-        alert("¡Contrato firmado exitosamente!");
+        showError('¡Contrato firmado exitosamente!');
         handleCloseModals();
       } else {
-        alert(result.message);
+        showError(result.message);
       }
     } catch (error) {
       console.error("Error al firmar contrato:", error);
-      alert("Error al firmar el contrato");
+      showError('Error al firmar el contrato');
     } finally {
       setIsSigning(false);
     }
@@ -124,7 +125,7 @@ export default function ContractsPage() {
       });
 
       if (result.success) {
-        alert("¡Contrato creado exitosamente!");
+        showError('¡Contrato creado exitosamente!');
         setIsCreateModalOpen(false);
         // Resetear formulario
         setNewContract({
@@ -142,17 +143,17 @@ export default function ContractsPage() {
           deliverables: ['']
         });
       } else {
-        alert(result.message);
+        showError(result.message);
       }
     } catch (error) {
       console.error("Error al crear contrato:", error);
-      alert("Error al crear el contrato");
+      showError('Error al crear el contrato');
     }
   };
 
   const handlePaymentSuccess = (txHash: string) => {
     console.log("Pago exitoso:", txHash);
-    alert(`¡Pago realizado exitosamente! Hash: ${txHash}`);
+    showError('¡Pago realizado exitosamente! Hash: ${txHash}');
   };
 
   const handleDownloadPDF = (contract: any) => {

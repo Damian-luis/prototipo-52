@@ -8,6 +8,7 @@ import ComponentCard from "@/components/common/ComponentCard";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import Badge from "@/components/ui/badge/Badge";
+import { showError } from '@/util/notifications';
 import { 
   Plus, 
   X, 
@@ -83,12 +84,12 @@ const EditJobPage = () => {
             maxApplicants: 10 // Valor por defecto
           });
         } else {
-          alert("No se encontró el trabajo especificado");
+          showError('No se encontró el trabajo especificado');
           router.push("/empresa/proyectos");
         }
       } catch (error) {
         console.error("Error loading job:", error);
-        alert("Error al cargar el trabajo");
+        showError('Error al cargar el trabajo');
         router.push("/empresa/proyectos");
       } finally {
         setIsLoading(false);
@@ -201,13 +202,13 @@ const EditJobPage = () => {
       const result = await updateJob(jobId, jobData);
       
       if (result.success) {
-        alert("Oferta actualizada exitosamente");
+        showError('Oferta actualizada exitosamente');
         router.push("/empresa/proyectos");
       } else {
-        alert("Error al actualizar la oferta: " + result.message);
+        showError("Error al actualizar la oferta: " + result.message);
       }
     } catch (error) {
-      alert("Error al actualizar la oferta");
+      showError('Error al actualizar la oferta');
     } finally {
       setIsSubmitting(false);
     }

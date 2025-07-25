@@ -50,7 +50,6 @@ const navItems: NavItem[] = [
     subItems: [
       { name: "Buscar Talento", path: "/empresa/profesionales" },
       { name: "Mis Equipos", path: "/empresa/profesionales/equipos" },
-      { name: "Evaluaciones", path: "/empresa/profesionales/evaluaciones" },
     ],
   },
   {
@@ -58,9 +57,7 @@ const navItems: NavItem[] = [
     name: "Contratos",
     subItems: [
       { name: "Mis Contratos", path: "/empresa/contratos" },
-      { name: "Contratos Activos", path: "/empresa/contratos/activos" },
       { name: "Historial", path: "/empresa/contratos/historial" },
-      { name: "Nuevo Contrato", path: "/empresa/contratos/nuevo" },
     ],
   },
   {

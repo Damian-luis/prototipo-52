@@ -92,11 +92,12 @@ const cvService = {
     availability?: string;
     rating?: number;
     country?: string;
+    search?: string;
   }): Promise<ProfessionalProfile[]> {
     const params = new URLSearchParams();
     if (filters) {
       Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined) {
+        if (value !== undefined && value !== null && value !== '') {
           if (Array.isArray(value)) {
             params.append(key, value.join(','));
           } else {

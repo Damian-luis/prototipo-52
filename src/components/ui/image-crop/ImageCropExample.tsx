@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Upload } from 'lucide-react';
 import Button from '../button/Button';
 import ImageCropModal from './ImageCropModal';
+import { showError } from '@/util/notifications';
 
 const ImageCropExample: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -37,11 +38,11 @@ const ImageCropExample: React.FC = () => {
       // const result = await response.json();
       
       console.log('Imagen recortada lista para subir:', croppedImageBlob);
-      alert('Imagen recortada exitosamente! Revisa la consola para ver el Blob.');
+      showError('Imagen recortada exitosamente! Revisa la consola para ver el Blob.');
       
     } catch (error) {
       console.error('Error al procesar la imagen:', error);
-      alert('Error al procesar la imagen');
+      showError('Error al procesar la imagen');
     } finally {
       setIsUploading(false);
     }
@@ -111,7 +112,7 @@ const ImageCropExample: React.FC = () => {
             </Button>
             <Button
               variant="primary"
-              onClick={() => alert('Aquí implementarías la subida al servidor')}
+              onClick={() => showError('Aquí implementarías la subida al servidor')}
               size="sm"
               disabled={isUploading}
             >

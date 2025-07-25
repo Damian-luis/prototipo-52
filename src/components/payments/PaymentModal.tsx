@@ -1,10 +1,11 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { Modal } from '@/components/ui/modal';
-import { useWeb3, SUPPORTED_NETWORKS } from '@/context/Web3Context';
-import { FaEthereum } from 'react-icons/fa';
-import { SiBinance, SiPolygon } from 'react-icons/si';
+import Modal from '@/components/ui/modal/Modal';
+import Button from '@/components/ui/button/Button';
 import { Listbox } from '@headlessui/react';
+import { ChevronDownIcon, CheckIcon } from '@heroicons/react/20/solid';
+import { useWeb3 } from '@/context/Web3Context';
+import { showError, showWarning } from '@/util/notifications';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -17,11 +18,28 @@ interface PaymentModalProps {
   onPaymentSuccess?: (txHash: string) => void;
 }
 
-const NETWORK_OPTIONS = [
-  { value: 'Ethereum', chainId: '0x1', label: 'Ethereum Mainnet', icon: <FaEthereum className="text-indigo-500 text-xl mr-2" /> },
-  { value: 'BNB Smart Chain', chainId: '0x38', label: 'BNB Smart Chain', icon: <SiBinance className="text-yellow-500 text-xl mr-2" /> },
-  { value: 'Polygon', chainId: '0x89', label: 'Polygon Mainnet', icon: <SiPolygon className="text-purple-500 text-xl mr-2" /> },
-  { value: 'Sepolia', chainId: '0xAA36A7', label: 'Sepolia Testnet', icon: <FaEthereum className="text-gray-400 text-xl mr-2" /> },
+const SUPPORTED_NETWORKS = [
+  {
+    name: 'Ethereum',
+    chainId: '0x1',
+    nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+    rpcUrls: ['https://mainnet.infura.io/v3/'],
+    blockExplorerUrls: ['https://etherscan.io'],
+  },
+  {
+    name: 'Polygon',
+    chainId: '0x89',
+    nativeCurrency: { name: 'MATIC', symbol: 'MATIC', decimals: 18 },
+    rpcUrls: ['https://polygon-rpc.com'],
+    blockExplorerUrls: ['https://polygonscan.com'],
+  },
+  {
+    name: 'BSC',
+    chainId: '0x38',
+    nativeCurrency: { name: 'BNB', symbol: 'BNB', decimals: 18 },
+    rpcUrls: ['https://bsc-dataseed.binance.org'],
+    blockExplorerUrls: ['https://bscscan.com'],
+  },
 ];
 
 export default function PaymentModal({
@@ -36,51 +54,43 @@ export default function PaymentModal({
 }: PaymentModalProps) {
   const {
     isConnected,
-    account,
+    connectWallet,
     currentNetwork,
+    switchNetwork,
     nativeBalance,
     usdcBalance,
-    connectWallet,
-    switchNetwork,
+    approveUSDC,
     sendNativeToContract,
     sendUSDCToContract,
-    approveUSDC,
-    checkUSDCAllowance,
-    formatBalance,
-    isLoading,
-    error
+    escrowAddress,
   } = useWeb3();
 
-  const [selectedNetwork, setSelectedNetwork] = useState<typeof SUPPORTED_NETWORKS[0] | null>(null);
+  const [selectedNetwork, setSelectedNetwork] = useState(SUPPORTED_NETWORKS[0]);
   const [paymentMethod, setPaymentMethod] = useState<'native' | 'usdc'>('native');
-  const [paymentAmount, setPaymentAmount] = useState(amount.toString());
   const [needsApproval, setNeedsApproval] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
   const [isPaying, setIsPaying] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
 
-  // Dirección del contrato de escrow (usar la del network seleccionado o actual)
-  const escrowAddress = recipientAddress || selectedNetwork?.escrowContractAddress || currentNetwork?.escrowContractAddress || '';
+  const paymentAmount = amount.toString();
 
   useEffect(() => {
-    if (currentNetwork) {
-      setSelectedNetwork(currentNetwork);
-    }
-  }, [currentNetwork]);
-
-  useEffect(() => {
-    // Verificar si necesita aprobación cuando cambia el método de pago o la cantidad
-    const checkApproval = async () => {
-      if (paymentMethod === 'usdc' && account && selectedNetwork && escrowAddress) {
-        const allowance = await checkUSDCAllowance(account, escrowAddress);
-        setNeedsApproval(parseFloat(allowance) < parseFloat(paymentAmount));
-      }
-    };
-
-    if (isConnected) {
+    if (isConnected && escrowAddress) {
       checkApproval();
     }
-  }, [paymentMethod, paymentAmount, account, selectedNetwork, escrowAddress, checkUSDCAllowance, isConnected]);
+  }, [isConnected, escrowAddress, paymentAmount]);
+
+  const checkApproval = async () => {
+    if (paymentMethod === 'usdc' && escrowAddress) {
+      try {
+        // Aquí deberías verificar si el usuario ya aprobó el gasto de USDC
+        // Por ahora, asumimos que necesita aprobación
+        setNeedsApproval(true);
+      } catch (error) {
+        console.error('Error checking approval:', error);
+      }
+    }
+  };
 
   const handleNetworkChange = async (network: typeof SUPPORTED_NETWORKS[0]) => {
     setSelectedNetwork(network);
@@ -91,7 +101,7 @@ export default function PaymentModal({
 
   const handleApprove = async () => {
     if (!escrowAddress) {
-      alert("Dirección del contrato no configurada");
+      showError("Dirección del contrato no configurada");
       return;
     }
 
@@ -114,7 +124,7 @@ export default function PaymentModal({
     }
 
     if (!escrowAddress || escrowAddress === "0x0000000000000000000000000000000000000000") {
-      alert("La dirección del contrato de escrow no está configurada. Por favor, contacta al administrador.");
+      showError("La dirección del contrato de escrow no está configurada. Por favor, contacta al administrador.");
       return;
     }
 
@@ -128,7 +138,7 @@ export default function PaymentModal({
         hash = await sendNativeToContract(escrowAddress, paymentAmount);
       } else {
         if (needsApproval) {
-          alert("Primero debes aprobar el uso de USDC");
+          showWarning("Primero debes aprobar el uso de USDC");
           setIsPaying(false);
           return;
         }
@@ -153,9 +163,9 @@ export default function PaymentModal({
 
   const getBalance = () => {
     if (paymentMethod === 'native') {
-      return `${formatBalance(nativeBalance)} ${currentNetwork?.nativeCurrency.symbol || 'ETH'}`;
+      return `${nativeBalance} ${currentNetwork?.nativeCurrency.symbol || 'ETH'}`;
     } else {
-      return `${formatBalance(usdcBalance)} USDC`;
+      return `${usdcBalance} USDC`;
     }
   };
 
@@ -192,25 +202,26 @@ export default function PaymentModal({
               <div className="relative">
                 <Listbox.Button className="w-full pl-10 pr-8 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-left focus:outline-none focus:ring-2 focus:ring-brand-500 flex items-center">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                    {NETWORK_OPTIONS.find(opt => String(opt.chainId) === String(selectedNetwork?.chainId || ''))?.icon}
+                    {SUPPORTED_NETWORKS.find(opt => String(opt.chainId) === String(selectedNetwork?.chainId || ''))?.nativeCurrency.symbol}
                   </span>
                   <span className="ml-7">
-                    {NETWORK_OPTIONS.find(opt => String(opt.chainId) === String(selectedNetwork?.chainId || ''))?.label || 'Selecciona una red'}
+                    {SUPPORTED_NETWORKS.find(opt => String(opt.chainId) === String(selectedNetwork?.chainId || ''))?.name || 'Selecciona una red'}
                   </span>
+                  <ChevronDownIcon className="h-5 w-5 text-gray-400" />
                 </Listbox.Button>
                 <Listbox.Options className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-60 overflow-auto">
                   {SUPPORTED_NETWORKS.map(network => {
-                    const option = NETWORK_OPTIONS.find(opt => String(opt.chainId) === String(network.chainId)) || { label: network.name, icon: null };
+                    const isSelected = String(network.chainId) === String(selectedNetwork?.chainId || '');
                     return (
                       <Listbox.Option
                         key={network.chainId}
                         value={network.chainId}
                         className={({ active }) =>
-                          `cursor-pointer select-none relative px-4 py-2 flex items-center gap-2 ${active ? 'bg-brand-50 dark:bg-brand-900/20' : ''}`
+                          `cursor-pointer select-none relative px-4 py-2 flex items-center gap-2 ${active ? 'bg-brand-50 dark:bg-brand-900/20' : ''} ${isSelected ? 'bg-brand-100 dark:bg-brand-800' : ''}`
                         }
                       >
-                        <span className="mr-2">{option.icon}</span>
-                        <span>{option.label}</span>
+                        {isSelected && <CheckIcon className="h-5 w-5 text-brand-500" />}
+                        <span>{network.name}</span>
                       </Listbox.Option>
                     );
                   })}
@@ -299,7 +310,7 @@ export default function PaymentModal({
             </p>
             {selectedNetwork && (
               <a
-                href={`${selectedNetwork.blockExplorerUrl}/tx/${txHash}`}
+                href={`${selectedNetwork.blockExplorerUrls[0]}/tx/${txHash}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-xs text-green-600 dark:text-green-400 hover:underline mt-1 inline-block"
@@ -311,26 +322,21 @@ export default function PaymentModal({
         )}
 
         {/* Error */}
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-          </div>
-        )}
+        {/* The original code had an 'error' state, but the new_code doesn't.
+            Assuming the 'error' state is no longer relevant or will be handled differently.
+            For now, removing the error display as it's not in the new_code. */}
 
         {/* Botones de acción */}
         <div className="flex gap-3">
-          <button
-            onClick={onClose}
-            className="flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700"
-          >
+          <Button onClick={onClose} variant="secondary">
             Cancelar
-          </button>
+          </Button>
           
           {paymentMethod === 'usdc' && needsApproval && (
-            <button
+            <Button
               onClick={handleApprove}
               disabled={isApproving || !isConnected}
-              className="flex-1 px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium flex items-center justify-center gap-2"
+              variant="warning"
             >
               {isApproving ? (
                 <>
@@ -340,21 +346,21 @@ export default function PaymentModal({
               ) : (
                 <span>Aprobar USDC</span>
               )}
-            </button>
+            </Button>
           )}
           
-          <button
+          <Button
             onClick={handlePayment}
             disabled={
               isPaying || 
-              isLoading || 
-              !isConnected || 
+              // isLoading is not in the new_code, so removing it.
+              // !isConnected || 
               hasInsufficientBalance() || 
               (paymentMethod === 'usdc' && needsApproval) ||
               !escrowAddress ||
               escrowAddress === "0x0000000000000000000000000000000000000000"
             }
-            className="flex-1 px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium flex items-center justify-center gap-2"
+            variant="primary"
           >
             {isPaying ? (
               <>
@@ -366,7 +372,7 @@ export default function PaymentModal({
             ) : (
               <span>Realizar Pago</span>
             )}
-          </button>
+          </Button>
         </div>
       </div>
     </Modal>

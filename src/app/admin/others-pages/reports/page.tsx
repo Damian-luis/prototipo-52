@@ -7,6 +7,7 @@ import { usePayment } from "@/context/PaymentContext";
 import ComponentCard from "@/components/common/ComponentCard";
 import BarChartOne from "@/components/charts/bar/BarChartOne";
 import LineChartOne from "@/components/charts/line/LineChartOne";
+import { showError } from '@/util/notifications';
 
 const AdminReportsPage = () => {
   const { users } = useAuth();
@@ -42,7 +43,7 @@ const AdminReportsPage = () => {
   }, [users, contracts, payments, vacancies, applications, evaluations]);
 
   const handleExport = (format: 'pdf' | 'excel') => {
-    alert(`Exportando reporte en formato ${format.toUpperCase()}...`);
+    showError('Exportando reporte en formato ${format.toUpperCase()}...');
     // Aquí iría la lógica real de exportación
   };
 

@@ -106,16 +106,16 @@ export const TalentProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       setLoading(true);
       let allApplications: any[] = [];
       
-      if (user?.role === 'empresa') {
+      if (user?.role === 'EMPRESA') {
         // Para empresas, cargar aplicaciones de sus proyectos
         const companyJobs = await jobsService.getJobsByCompany();
         for (const job of companyJobs) {
-          const jobApplications = await applicationsService.getApplicationsByJob(job.id);
+          const jobApplications = await applicationsService.getJobApplications(job.id);
           allApplications.push(...jobApplications);
         }
       } else {
         // Para freelancers, cargar sus aplicaciones
-        const userApplications = await applicationsService.getApplicationsByProfessional();
+        const userApplications = await applicationsService.getMyApplications();
         allApplications = userApplications;
       }
       

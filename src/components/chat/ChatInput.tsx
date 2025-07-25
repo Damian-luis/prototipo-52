@@ -1,38 +1,43 @@
 "use client";
 
-import React, { useState, useRef } from 'react';
-import { useChat } from '@/context/ChatContext';
-import { useAuth } from '@/context/AuthContext';
-import { Send, Paperclip, Image, Smile } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
 import Button from '@/components/ui/button/Button';
+import { Paperclip, Image, Smile, Send } from 'lucide-react';
+import { useChat } from '@/context/ChatContext';
+import { showError } from '@/util/notifications';
 
 interface ChatInputProps {
   roomId: string;
 }
 
 const ChatInput: React.FC<ChatInputProps> = ({ roomId }) => {
-  const { user } = useAuth();
-  const { sendMessage, uploadFile, isConnected, isLoading } = useChat();
-  
   const [message, setMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  
+  const { sendMessage, isConnected, uploadFile } = useChat();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout>();
 
   const handleTyping = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setMessage(e.target.value);
-    setIsTyping(e.target.value.length > 0);
+    setIsTyping(true);
+    
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    
+    typingTimeoutRef.current = setTimeout(() => {
+      setIsTyping(false);
+    }, 1000);
   };
 
   const handleSendMessage = async () => {
-    if (!message.trim() || !isConnected || isLoading) return;
-
+    if (!message.trim() || !isConnected) return;
+    
     try {
-      await sendMessage(message.trim(), roomId, 'text');
+      await sendMessage(message, roomId);
       setMessage('');
-      setIsTyping(false);
     } catch (error) {
       console.error('Error sending message:', error);
     }
@@ -75,7 +80,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ roomId }) => {
 
     // Validar que sea una imagen
     if (!file.type.startsWith('image/')) {
-      alert('Por favor selecciona un archivo de imagen válido');
+      showError('Por favor selecciona un archivo de imagen válido');
       return;
     }
 
@@ -106,6 +111,15 @@ const ChatInput: React.FC<ChatInputProps> = ({ roomId }) => {
   const triggerImageUpload = () => {
     imageInputRef.current?.click();
   };
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="space-y-3">
@@ -170,21 +184,12 @@ const ChatInput: React.FC<ChatInputProps> = ({ roomId }) => {
         <Button
           onClick={handleSendMessage}
           disabled={!message.trim() || !isConnected || isUploading}
-          variant="primary"
-          size="sm"
-          className="px-4 py-3"
+          size="md"
+          className="px-4"
         >
           <Send className="w-4 h-4" />
         </Button>
       </div>
-
-      {/* Indicador de carga */}
-      {isUploading && (
-        <div className="flex items-center space-x-2 text-sm text-gray-500">
-          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-500"></div>
-          <span>Subiendo archivo...</span>
-        </div>
-      )}
 
       {/* Inputs ocultos para archivos */}
       <input
@@ -192,7 +197,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ roomId }) => {
         type="file"
         onChange={handleFileUpload}
         className="hidden"
-        accept=".pdf,.doc,.docx,.txt,.zip,.rar,.xlsx,.xls,.ppt,.pptx"
+        accept=".pdf,.doc,.docx,.txt,.zip,.rar"
       />
       <input
         ref={imageInputRef}
@@ -202,12 +207,12 @@ const ChatInput: React.FC<ChatInputProps> = ({ roomId }) => {
         accept="image/*"
       />
 
-      {/* Información de ayuda */}
-      <div className="text-xs text-gray-500 dark:text-gray-400">
-        <p>• Presiona Enter para enviar, Shift+Enter para nueva línea</p>
-        <p>• Puedes adjuntar archivos (máx. 10MB) e imágenes</p>
-        <p>• Los archivos se guardan de forma segura en la nube</p>
-      </div>
+      {/* Indicador de carga */}
+      {isUploading && (
+        <div className="text-sm text-blue-600 dark:text-blue-400">
+          Subiendo archivo...
+        </div>
+      )}
     </div>
   );
 };

@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSupport } from '@/context/SupportContext';
 import { useAuth } from '@/context/AuthContext';
+import { showError } from '@/util/notifications';
 
 export default function SupportPage() {
   const { tickets, updateTicketStatus, loading } = useSupport();
@@ -17,13 +18,13 @@ export default function SupportPage() {
       if (result.success) {
         setSelectedTicket(null);
         setNewStatus('');
-        alert('Estado actualizado exitosamente');
+        showError('Estado actualizado exitosamente');
       } else {
-        alert('Error al actualizar el estado');
+        showError('Error al actualizar el estado');
       }
     } catch (error) {
       console.error('Error updating ticket status:', error);
-      alert('Error al actualizar el estado');
+      showError('Error al actualizar el estado');
     }
   };
 

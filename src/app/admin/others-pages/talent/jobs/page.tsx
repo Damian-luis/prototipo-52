@@ -9,6 +9,7 @@ import Label from "@/components/form/Label";
 import { PlusIcon, Pencil } from "@/icons";
 import type { JobVacancy } from "@/context/TalentContext";
 import { Modal } from "@/components/ui/modal";
+import { showError } from '@/util/notifications';
 
 const AI_WEBHOOK_URL = "https://automation-biya.useteam.io/webhook/88eefc19-6ddb-47c9-840d-a96c7859dd96";
 
@@ -98,14 +99,14 @@ const AdminJobsPage = () => {
     try {
       if (editingJob) {
         await updateVacancy(editingJob.id, jobData);
-        alert("Vacante actualizada exitosamente");
+        showError('Vacante actualizada exitosamente');
       } else {
         await createVacancy(jobData);
-        alert("Vacante creada exitosamente");
+        showError('Vacante creada exitosamente');
       }
       resetForm();
     } catch (error) {
-      alert("Error al guardar la vacante");
+      showError('Error al guardar la vacante');
     }
   };
 
@@ -147,9 +148,9 @@ const AdminJobsPage = () => {
     if (confirm("¿Estás seguro de eliminar esta vacante?")) {
       try {
         await deleteVacancy(id);
-        alert("Vacante eliminada exitosamente");
+        showError('Vacante eliminada exitosamente');
       } catch (error) {
-        alert("Error al eliminar la vacante");
+        showError('Error al eliminar la vacante');
       }
     }
   };
@@ -465,7 +466,7 @@ const AdminJobsPage = () => {
                                 )}
                                 <button
                                   className="px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-xs"
-                                  onClick={() => {navigator.clipboard.writeText(userProfile?.email || freelancer.nombre_freelancer); alert('Email copiado')}}
+                                  onClick={() => {navigator.clipboard.writeText(userProfile?.email || freelancer.nombre_freelancer); showError('Email copiado')}}
                                 >
                                   Copiar email
                                 </button>
@@ -565,7 +566,7 @@ const AdminJobsPage = () => {
               </button>
               <button
                 className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-base font-semibold shadow transition"
-                onClick={() => {navigator.clipboard.writeText(selectedFreelancer.email); alert('Email copiado')}}
+                onClick={() => {navigator.clipboard.writeText(selectedFreelancer.email); showError('Email copiado')}}
               >
                 Copiar email
               </button>

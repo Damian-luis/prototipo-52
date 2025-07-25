@@ -7,6 +7,7 @@ import Button from "@/components/ui/button/Button";
 import Badge from "@/components/ui/badge/Badge";
 import Avatar from "@/components/ui/avatar/Avatar";
 import cvService, { ProfessionalProfile } from "@/services/cv.service";
+import { showError } from '@/util/notifications';
 
 const EmpresaProfesionalesPage = () => {
   const { user } = useAuth();
@@ -24,57 +25,42 @@ const EmpresaProfesionalesPage = () => {
 
   useEffect(() => {
     loadProfessionals();
-  }, []);
+  }, [skillFilter, experienceFilter, availabilityFilter, ratingFilter]);
 
   useEffect(() => {
-    filterProfessionals();
-  }, [professionals, searchTerm, skillFilter, experienceFilter, availabilityFilter, ratingFilter]);
-
-  const loadProfessionals = async () => {
-    try {
-      setLoading(true);
-      const data = await cvService.getAllProfessionals();
-      setProfessionals(data);
-      setFilteredProfessionals(data);
-    } catch (error) {
-      console.error('Error cargando profesionales:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filterProfessionals = () => {
-    let filtered = [...professionals];
-
+    // Filtrar localmente solo por búsqueda de texto
     if (searchTerm) {
-      filtered = filtered.filter(prof => 
+      const filtered = professionals.filter(prof => 
         prof.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         prof.bio?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         prof.skills.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase()))
       );
+      setFilteredProfessionals(filtered);
+    } else {
+      setFilteredProfessionals(professionals);
     }
+  }, [professionals, searchTerm]);
 
-    if (skillFilter) {
-      filtered = filtered.filter(prof =>
-        prof.skills.some(skill => skill.toLowerCase().includes(skillFilter.toLowerCase()))
-      );
+  const loadProfessionals = async () => {
+    try {
+      setLoading(true);
+      const filters: any = {};
+      
+      if (skillFilter) filters.skills = [skillFilter];
+      if (experienceFilter) filters.experience = parseInt(experienceFilter);
+      if (availabilityFilter) filters.availability = availabilityFilter;
+      if (ratingFilter) filters.rating = parseFloat(ratingFilter);
+      if (searchTerm) filters.search = searchTerm;
+
+      const data = await cvService.getAllProfessionals(filters);
+      setProfessionals(data);
+      setFilteredProfessionals(data);
+    } catch (error) {
+      console.error('Error cargando profesionales:', error);
+      showError('Error al cargar los profesionales');
+    } finally {
+      setLoading(false);
     }
-
-    if (experienceFilter) {
-      const minExp = parseInt(experienceFilter);
-      filtered = filtered.filter(prof => prof.experience >= minExp);
-    }
-
-    if (availabilityFilter) {
-      filtered = filtered.filter(prof => prof.availability === availabilityFilter);
-    }
-
-    if (ratingFilter) {
-      const minRating = parseFloat(ratingFilter);
-      filtered = filtered.filter(prof => prof.rating >= minRating);
-    }
-
-    setFilteredProfessionals(filtered);
   };
 
   const handleContactProfessional = async () => {
@@ -82,13 +68,13 @@ const EmpresaProfesionalesPage = () => {
 
     try {
       await cvService.contactProfessional(selectedProfessional.id, contactMessage);
-      alert('Mensaje enviado exitosamente');
+      showError('Mensaje enviado exitosamente');
       setShowContactModal(false);
       setContactMessage("");
       setSelectedProfessional(null);
     } catch (error) {
       console.error('Error enviando mensaje:', error);
-      alert('Error al enviar el mensaje');
+      showError('Error al enviar el mensaje');
     }
   };
 
@@ -105,7 +91,7 @@ const EmpresaProfesionalesPage = () => {
       document.body.removeChild(a);
     } catch (error) {
       console.error('Error descargando CV:', error);
-      alert('Error al descargar el CV');
+      showError('Error al descargar el CV');
     }
   };
 
@@ -323,7 +309,7 @@ const EmpresaProfesionalesPage = () => {
                   )}
                   <Button
                     variant="ghost"
-                    onClick={() => window.open(`/profesional/${professional.id}/perfil`, '_blank')}
+                    onClick={() => window.location.href = `/empresa/profesionales/${professional.id}`}
                     className="w-full"
                   >
                     Ver Perfil Completo
