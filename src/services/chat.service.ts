@@ -7,7 +7,7 @@ export interface ChatMessage {
   senderName: string;
   senderAvatar?: string;
   roomId: string;
-  type: 'text' | 'file' | 'image';
+  type: 'TEXT' | 'FILE' | 'IMAGE';
   fileName?: string;
   fileUrl?: string;
   fileSize?: number;
@@ -35,7 +35,7 @@ export interface CreateRoomRequest {
 export interface SendMessageRequest {
   content: string;
   roomId: string;
-  type?: 'text' | 'file' | 'image';
+  type?: 'TEXT' | 'FILE' | 'IMAGE';
   fileName?: string;
   fileUrl?: string;
   fileSize?: number;
@@ -75,9 +75,14 @@ const chatService = {
   },
 
   // Obtener mensajes de una sala específica
-  async getRoomMessages(roomId: string): Promise<ChatMessage[]> {
+  async getRoomMessages(roomId: string): Promise<{ messages: ChatMessage[]; pagination: any }> {
     try {
+      console.log('🔍 [SERVICE] getRoomMessages called with roomId:', roomId);
+      console.log('🔍 [SERVICE] Making request to:', `/chat/rooms/${roomId}/messages`);
+      
       const response = await api.get(`/chat/rooms/${roomId}/messages`);
+      console.log('🔍 [SERVICE] Response received:', response.data);
+      
       return response.data;
     } catch (error) {
       console.error('Error fetching room messages:', error);
@@ -146,6 +151,27 @@ const chatService = {
       return response.data;
     } catch (error) {
       console.error('Error fetching chat stats:', error);
+      throw error;
+    }
+  },
+
+  // Método unificado para contactar usuarios
+  async contactUser(participants: string[], message: string, roomName?: string): Promise<{
+    success: boolean;
+    roomId: string;
+    messageId: string | null;
+    isNewRoom: boolean;
+    message: string;
+  }> {
+    try {
+      const response = await api.post('/chat/contact', {
+        participants,
+        message,
+        roomName,
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error contacting user:', error);
       throw error;
     }
   },

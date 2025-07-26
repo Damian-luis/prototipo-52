@@ -24,18 +24,24 @@ export const SupportProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   // Cargar tickets del usuario actual
   const loadTickets = async () => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      console.log('⚠️ [SUPPORT CONTEXT] No user authenticated, skipping ticket load');
+      return;
+    }
     
     setLoading(true);
     try {
+      console.log('🔍 [SUPPORT CONTEXT] Loading tickets for user:', user.id);
       // Para usuarios normales, cargar todos los tickets y filtrar por los que crearon o les fueron asignados
       const allTickets = await supportService.getAllTickets();
       const userTickets = allTickets.filter(ticket => 
         ticket.creatorId === user.id || ticket.assigneeId === user.id
       );
+      console.log('✅ [SUPPORT CONTEXT] Loaded tickets:', userTickets.length);
       setTickets(userTickets);
     } catch (error) {
-      console.error('Error loading tickets:', error);
+      console.error('❌ [SUPPORT CONTEXT] Error loading tickets:', error);
+      // No lanzar el error, solo mostrar en consola
     } finally {
       setLoading(false);
     }
@@ -43,12 +49,20 @@ export const SupportProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   // Cargar todos los tickets (para admin)
   const loadAllTickets = async () => {
+    if (!user?.id) {
+      console.log('⚠️ [SUPPORT CONTEXT] No user authenticated, skipping ticket load');
+      return;
+    }
+    
     setLoading(true);
     try {
+      console.log('🔍 [SUPPORT CONTEXT] Loading all tickets for admin:', user.id);
       const allTickets = await supportService.getAllTickets();
+      console.log('✅ [SUPPORT CONTEXT] Loaded all tickets:', allTickets.length);
       setTickets(allTickets);
     } catch (error) {
-      console.error('Error loading all tickets:', error);
+      console.error('❌ [SUPPORT CONTEXT] Error loading all tickets:', error);
+      // No lanzar el error, solo mostrar en consola
     } finally {
       setLoading(false);
     }

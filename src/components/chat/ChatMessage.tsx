@@ -49,7 +49,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
 
   const renderMessageContent = () => {
     switch (message.type) {
-      case 'file':
+      case 'FILE':
         return (
           <div className="flex items-center space-x-2 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
             <span className="text-2xl">{getFileIcon(message.fileName || '')}</span>
@@ -76,7 +76,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
           </div>
         );
 
-      case 'image':
+      case 'IMAGE':
         return (
           <div className="space-y-2">
             {message.content && (
@@ -102,6 +102,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
           </div>
         );
 
+      case 'TEXT':
       default:
         return (
           <p className="text-sm text-gray-900 dark:text-white whitespace-pre-wrap">

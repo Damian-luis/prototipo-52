@@ -1,16 +1,21 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useChat } from "@/context/ChatContext";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import ComponentCard from "@/components/common/ComponentCard";
 import Button from "@/components/ui/button/Button";
 import Badge from "@/components/ui/badge/Badge";
 import Avatar from "@/components/ui/avatar/Avatar";
 import cvService, { ProfessionalProfile } from "@/services/cv.service";
-import { showError } from '@/util/notifications';
+import { showError, showSuccess } from '@/util/notifications';
+import { MessageSquare, X } from "lucide-react";
+import ChatMessages from "@/components/chat/ChatMessages";
+import ChatInput from "@/components/chat/ChatInput";
 
 const EmpresaProfesionalesPage = () => {
   const { user } = useAuth();
+  const { contactUser } = useChat();
   const [professionals, setProfessionals] = useState<ProfessionalProfile[]>([]);
   const [filteredProfessionals, setFilteredProfessionals] = useState<ProfessionalProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -19,9 +24,6 @@ const EmpresaProfesionalesPage = () => {
   const [experienceFilter, setExperienceFilter] = useState("");
   const [availabilityFilter, setAvailabilityFilter] = useState("");
   const [ratingFilter, setRatingFilter] = useState("");
-  const [selectedProfessional, setSelectedProfessional] = useState<ProfessionalProfile | null>(null);
-  const [showContactModal, setShowContactModal] = useState(false);
-  const [contactMessage, setContactMessage] = useState("");
 
   useEffect(() => {
     loadProfessionals();
@@ -63,19 +65,40 @@ const EmpresaProfesionalesPage = () => {
     }
   };
 
-  const handleContactProfessional = async () => {
-    if (!selectedProfessional || !contactMessage.trim()) return;
+  const handleContactProfessional = async (professional: ProfessionalProfile) => {
+    if (!user || !professional.id) {
+      console.error('No se puede contactar al profesional: datos faltantes');
+      return;
+    }
+
+    const companyId = user.id; // ID de la empresa actual
+    const professionalId = professional.id;
 
     try {
-      await cvService.contactProfessional(selectedProfessional.id, contactMessage);
-      showError('Mensaje enviado exitosamente');
-      setShowContactModal(false);
-      setContactMessage("");
-      setSelectedProfessional(null);
+      console.log('🆕 Abriendo chat con profesional...');
+      
+      // Buscar sala existente o crear nueva (sin enviar mensaje automático)
+      const result = await contactUser(
+        [companyId, professionalId],
+        '', // Sin mensaje automático
+        `Contacto: ${user.name} ↔ ${professional.fullName}`
+      );
+      
+      console.log('✅ Chat abierto:', result);
+      
+      // Redirigir a la página de chat
+      window.location.href = '/empresa/chat';
+      
     } catch (error) {
-      console.error('Error enviando mensaje:', error);
-      showError('Error al enviar el mensaje');
+      console.error('❌ Error al abrir chat:', error);
+      showError('Error al abrir el chat');
     }
+  };
+
+  const handleCloseChat = () => {
+    // setShowChat(false); // Removed
+    // setSelectedProfessional(null); // Removed
+    // setActiveRoom(null); // Removed
   };
 
   const handleDownloadCV = async (professional: ProfessionalProfile) => {
@@ -290,13 +313,10 @@ const EmpresaProfesionalesPage = () => {
                 <div className="flex flex-col gap-2 lg:w-48">
                   <Button
                     variant="primary"
-                    onClick={() => {
-                      setSelectedProfessional(professional);
-                      setShowContactModal(true);
-                    }}
+                    onClick={() => handleContactProfessional(professional)}
                     className="w-full"
                   >
-                    Contactar
+                    Abrir Chat
                   </Button>
                   {professional.cvFileName && (
                     <Button
@@ -331,48 +351,8 @@ const EmpresaProfesionalesPage = () => {
         )}
       </div>
 
-      {/* Modal de contacto */}
-      {showContactModal && selectedProfessional && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4">
-            <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
-              Contactar a {selectedProfessional.fullName}
-            </h3>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Mensaje
-              </label>
-              <textarea
-                value={contactMessage}
-                onChange={(e) => setContactMessage(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-600 dark:text-white"
-                rows={4}
-                placeholder="Escribe tu mensaje aquí..."
-              />
-            </div>
-            <div className="flex space-x-3">
-              <Button
-                onClick={() => {
-                  setShowContactModal(false);
-                  setContactMessage("");
-                  setSelectedProfessional(null);
-                }}
-                variant="outline"
-                className="flex-1"
-              >
-                Cancelar
-              </Button>
-              <Button
-                onClick={handleContactProfessional}
-                disabled={!contactMessage.trim()}
-                className="flex-1"
-              >
-                Enviar Mensaje
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Modal de chat */}
+      {/* Removed */}
     </div>
   );
 };

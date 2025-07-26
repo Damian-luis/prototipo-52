@@ -14,10 +14,10 @@ const ChatInput: React.FC<ChatInputProps> = ({ roomId }) => {
   const [message, setMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const { sendMessage, isConnected, uploadFile } = useChat();
+  const { sendMessage, uploadFile } = useChat();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
-  const typingTimeoutRef = useRef<NodeJS.Timeout>();
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleTyping = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setMessage(e.target.value);
@@ -33,7 +33,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ roomId }) => {
   };
 
   const handleSendMessage = async () => {
-    if (!message.trim() || !isConnected) return;
+    if (!message.trim()) return;
     
     try {
       await sendMessage(message, roomId);
@@ -62,7 +62,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ roomId }) => {
       await sendMessage(
         `Archivo: ${result.fileName}`,
         roomId,
-        'file'
+        'FILE'
       );
     } catch (error) {
       console.error('Error uploading file:', error);
@@ -92,7 +92,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ roomId }) => {
       await sendMessage(
         `Imagen: ${result.fileName}`,
         roomId,
-        'image'
+        'IMAGE'
       );
     } catch (error) {
       console.error('Error uploading image:', error);
@@ -124,11 +124,12 @@ const ChatInput: React.FC<ChatInputProps> = ({ roomId }) => {
   return (
     <div className="space-y-3">
       {/* Indicador de estado de conexión */}
-      {!isConnected && (
+      {/* The isConnected check was removed as per the edit hint. */}
+      {/* {!isConnected && (
         <div className="text-sm text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 px-3 py-2 rounded-lg">
           Conectando al chat...
         </div>
-      )}
+      )} */}
 
       {/* Input principal */}
       <div className="flex items-end space-x-3">
@@ -138,7 +139,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ roomId }) => {
             onClick={triggerFileUpload}
             variant="ghost"
             size="sm"
-            disabled={!isConnected || isUploading}
+            disabled={isUploading}
           >
             <Paperclip className="w-4 h-4" />
           </Button>
@@ -146,14 +147,14 @@ const ChatInput: React.FC<ChatInputProps> = ({ roomId }) => {
             onClick={triggerImageUpload}
             variant="ghost"
             size="sm"
-            disabled={!isConnected || isUploading}
+            disabled={isUploading}
           >
             <Image className="w-4 h-4" />
           </Button>
           <Button
             variant="ghost"
             size="sm"
-            disabled={!isConnected}
+            disabled={false}
           >
             <Smile className="w-4 h-4" />
           </Button>
@@ -165,8 +166,8 @@ const ChatInput: React.FC<ChatInputProps> = ({ roomId }) => {
             value={message}
             onChange={handleTyping}
             onKeyPress={handleKeyPress}
-            placeholder={isConnected ? "Escribe un mensaje..." : "Conectando..."}
-            disabled={!isConnected || isUploading}
+            placeholder="Escribe un mensaje..." // Removed isConnected check
+            disabled={isUploading}
             className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white resize-none"
             rows={1}
             style={{ minHeight: '44px', maxHeight: '120px' }}
@@ -183,7 +184,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ roomId }) => {
         {/* Botón enviar */}
         <Button
           onClick={handleSendMessage}
-          disabled={!message.trim() || !isConnected || isUploading}
+          disabled={!message.trim() || isUploading}
           size="md"
           className="px-4"
         >

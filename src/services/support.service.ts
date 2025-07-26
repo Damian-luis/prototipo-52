@@ -94,8 +94,19 @@ export interface UpdateTicketData {
 export const supportService = {
   // Obtener todos los tickets (para admin)
   async getAllTickets(): Promise<Ticket[]> {
-    const response = await api.get('/tickets');
-    return response.data;
+    try {
+      console.log('🔍 [SUPPORT SERVICE] Getting all tickets...');
+      const response = await api.get('/tickets');
+      console.log('✅ [SUPPORT SERVICE] Tickets response:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ [SUPPORT SERVICE] Error getting tickets:', error);
+      if (error.response) {
+        console.error('❌ [SUPPORT SERVICE] Error response:', error.response.data);
+        console.error('❌ [SUPPORT SERVICE] Error status:', error.response.status);
+      }
+      throw error;
+    }
   },
 
   // Obtener ticket por ID

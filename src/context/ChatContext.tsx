@@ -1,32 +1,26 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { io, Socket } from 'socket.io-client';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import chatService, { ChatMessage, ChatRoom, ChatUser, CreateRoomRequest, SendMessageRequest } from '@/services/chat.service';
 
 interface ChatContextType {
   // Estado
-  isConnected: boolean;
   messages: ChatMessage[];
   rooms: ChatRoom[];
   activeRoom: ChatRoom | null;
-  onlineUsers: ChatUser[];
   isLoading: boolean;
   error: string | null;
-
-  // Funciones de conexión
-  connect: () => void;
-  disconnect: () => void;
 
   // Funciones de salas
   joinRoom: (roomId: string) => void;
   leaveRoom: (roomId: string) => void;
   createRoom: (participants: string[], name?: string) => Promise<ChatRoom>;
   setActiveRoom: (room: ChatRoom | null) => void;
+  loadRooms: () => Promise<void>;
 
   // Funciones de mensajes
-  sendMessage: (content: string, roomId: string, type?: 'text' | 'file' | 'image') => Promise<void>;
+  sendMessage: (content: string, roomId: string, type?: 'TEXT' | 'FILE' | 'IMAGE') => Promise<void>;
   markAsRead: (roomId: string) => Promise<void>;
   getUnreadCount: (roomId: string) => number;
   getRoomMessages: (roomId: string) => Promise<ChatMessage[]>;
@@ -34,6 +28,13 @@ interface ChatContextType {
   // Funciones de usuarios
   getAvailableUsers: () => Promise<ChatUser[]>;
   uploadFile: (file: File) => Promise<{ url: string; fileName: string; fileSize: number }>;
+  contactUser: (participants: string[], message: string, roomName?: string) => Promise<{
+    success: boolean;
+    roomId: string;
+    messageId: string | null;
+    isNewRoom: boolean;
+    message: string;
+  }>;
 
   // Utilidades
   clearError: () => void;
@@ -47,170 +48,35 @@ interface ChatProviderProps {
 
 export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   const { user } = useAuth();
-  const [socket, setSocket] = useState<Socket | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
   const [activeRoom, setActiveRoom] = useState<ChatRoom | null>(null);
-  const [onlineUsers, setOnlineUsers] = useState<ChatUser[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const socketRef = useRef<Socket | null>(null);
 
   const clearError = () => setError(null);
 
-  const connect = () => {
-    if (!user || socketRef.current?.connected) return;
-
-    try {
-      const token = localStorage.getItem('authToken');
-      if (!token) {
-        console.error('No auth token found');
-        return;
-      }
-
-      const newSocket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000', {
-        auth: {
-          token,
-          userId: user.id,
-          userName: user.name,
-          userRole: user.role,
-        },
-        transports: ['websocket', 'polling'],
-      });
-
-      newSocket.on('connect', () => {
-        console.log('Chat connected');
-        setIsConnected(true);
-        setError(null);
-      });
-
-      newSocket.on('disconnect', () => {
-        console.log('Chat disconnected');
-        setIsConnected(false);
-      });
-
-      newSocket.on('connect_error', (error) => {
-        console.error('Chat connection error:', error);
-        setError('Error de conexión con el chat');
-        setIsConnected(false);
-      });
-
-      newSocket.on('message', (message: ChatMessage) => {
-        setMessages(prev => {
-          // Evitar duplicados
-          if (prev.find(m => m.id === message.id)) {
-            return prev;
-          }
-          return [...prev, message];
-        });
-
-        // Actualizar última mensaje en la sala
-        setRooms(prev => prev.map(room => {
-          if (room.id === message.roomId) {
-            return {
-              ...room,
-              lastMessage: message,
-              unreadCount: room.unreadCount + (message.senderId !== user.id ? 1 : 0),
-              updatedAt: message.timestamp,
-            };
-          }
-          return room;
-        }));
-      });
-
-      newSocket.on('room_created', (room: ChatRoom) => {
-        setRooms(prev => {
-          // Evitar duplicados
-          if (prev.find(r => r.id === room.id)) {
-            return prev;
-          }
-          return [...prev, room];
-        });
-      });
-
-      newSocket.on('room_joined', (room: ChatRoom) => {
-        setRooms(prev => prev.map(r => r.id === room.id ? room : r));
-      });
-
-      newSocket.on('room_left', (roomId: string) => {
-        setRooms(prev => prev.filter(r => r.id !== roomId));
-        if (activeRoom?.id === roomId) {
-          setActiveRoom(null);
-        }
-      });
-
-      newSocket.on('user_online', (userData: ChatUser) => {
-        setOnlineUsers(prev => {
-          const existing = prev.find(u => u.id === userData.id);
-          if (existing) {
-            return prev.map(u => u.id === userData.id ? { ...u, isOnline: true } : u);
-          }
-          return [...prev, userData];
-        });
-      });
-
-      newSocket.on('user_offline', (userId: string) => {
-        setOnlineUsers(prev => prev.map(u => 
-          u.id === userId ? { ...u, isOnline: false, lastSeen: new Date().toISOString() } : u
-        ));
-      });
-
-      newSocket.on('online_users', (users: ChatUser[]) => {
-        setOnlineUsers(users);
-      });
-
-      newSocket.on('messages_read', (data: { roomId: string; userId: string }) => {
-        setRooms(prev => prev.map(room => {
-          if (room.id === data.roomId) {
-            return {
-              ...room,
-              unreadCount: Math.max(0, room.unreadCount - 1),
-            };
-          }
-          return room;
-        }));
-      });
-
-      socketRef.current = newSocket;
-      setSocket(newSocket);
-    } catch (error) {
-      console.error('Error connecting to chat:', error);
-      setError('Error al conectar con el chat');
+  const joinRoom = useCallback((roomId: string) => {
+    // Simplemente actualizar la sala activa
+    const room = rooms.find(r => r.id === roomId);
+    if (room) {
+      setActiveRoom(room);
     }
-  };
+  }, [rooms]);
 
-  const disconnect = () => {
-    if (socketRef.current) {
-      socketRef.current.disconnect();
-      socketRef.current = null;
+  const leaveRoom = useCallback((roomId: string) => {
+    if (activeRoom?.id === roomId) {
+      setActiveRoom(null);
     }
-    setSocket(null);
-    setIsConnected(false);
-  };
+  }, [activeRoom]);
 
-  const joinRoom = (roomId: string) => {
-    if (socketRef.current && isConnected) {
-      socketRef.current.emit('join_room', roomId);
-    }
-  };
-
-  const leaveRoom = (roomId: string) => {
-    if (socketRef.current && isConnected) {
-      socketRef.current.emit('leave_room', roomId);
-    }
-  };
-
-  const createRoom = async (participants: string[], name?: string): Promise<ChatRoom> => {
+  const createRoom = useCallback(async (participants: string[], name?: string): Promise<ChatRoom> => {
     try {
       setIsLoading(true);
       const room = await chatService.createRoom({ participants, name });
       
       // Agregar la sala a la lista local
       setRooms(prev => [...prev, room]);
-      
-      // Unirse a la sala automáticamente
-      joinRoom(room.id);
       
       return room;
     } catch (error) {
@@ -220,11 +86,54 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const sendMessage = async (content: string, roomId: string, type: 'text' | 'file' | 'image' = 'text'): Promise<void> => {
+  const loadRooms = useCallback(async (): Promise<void> => {
+    try {
+      setIsLoading(true);
+      const userRooms = await chatService.getRooms();
+      setRooms(userRooms);
+    } catch (error) {
+      console.error('Error loading rooms:', error);
+      setError('Error al cargar las conversaciones');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const getRoomMessages = useCallback(async (roomId: string): Promise<ChatMessage[]> => {
+    try {
+      console.log('🔍 [CONTEXT] getRoomMessages called with roomId:', roomId);
+      console.log('🔍 [CONTEXT] roomId type:', typeof roomId);
+      
+      const response = await chatService.getRoomMessages(roomId);
+      console.log('🔍 [CONTEXT] getRoomMessages response:', response);
+      
+      const messages = response.messages;
+      console.log('🔍 [CONTEXT] Extracted messages:', messages);
+      console.log('🔍 [CONTEXT] Messages count:', messages.length);
+      console.log('🔍 [CONTEXT] Messages details:', messages.map(m => ({
+        id: m.id,
+        content: m.content,
+        type: m.type,
+        roomId: m.roomId,
+        senderName: m.senderName
+      })));
+      
+      setMessages(messages);
+      return messages;
+    } catch (error) {
+      console.error('Error fetching room messages:', error);
+      setError('Error al cargar los mensajes');
+      throw error;
+    }
+  }, []);
+
+  const sendMessage = useCallback(async (content: string, roomId: string, type: 'TEXT' | 'FILE' | 'IMAGE' = 'TEXT'): Promise<void> => {
     try {
       if (!content.trim()) return;
+
+      console.log('📤 Sending message via HTTP:', { content, roomId, type });
 
       const messageData: SendMessageRequest = {
         content: content.trim(),
@@ -232,35 +141,24 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         type,
       };
 
+      // Enviar mensaje por HTTP
       const message = await chatService.sendMessage(messageData);
       
-      // Agregar el mensaje localmente
-      setMessages(prev => [...prev, message]);
+      console.log('✅ Message sent successfully:', message);
       
-      // Actualizar última mensaje en la sala
-      setRooms(prev => prev.map(room => {
-        if (room.id === roomId) {
-          return {
-            ...room,
-            lastMessage: message,
-            updatedAt: message.timestamp,
-          };
-        }
-        return room;
-      }));
-
-      // Enviar por socket si está conectado
-      if (socketRef.current && isConnected) {
-        socketRef.current.emit('send_message', message);
-      }
-    } catch (error) {
-      console.error('Error sending message:', error);
+      // Recargar mensajes después de enviar para actualizar la UI
+      console.log('🔄 Reloading messages after sending...');
+      await getRoomMessages(roomId);
+      
+      console.log('✅ Messages reloaded after sending');
+    } catch (error: any) {
+      console.error('❌ Error sending message:', error);
       setError('Error al enviar el mensaje');
       throw error;
     }
-  };
+  }, [getRoomMessages]);
 
-  const markAsRead = async (roomId: string): Promise<void> => {
+  const markAsRead = useCallback(async (roomId: string): Promise<void> => {
     try {
       await chatService.markMessagesAsRead(roomId);
       
@@ -274,47 +172,29 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         }
         return room;
       }));
-
-      // Notificar por socket
-      if (socketRef.current && isConnected) {
-        socketRef.current.emit('mark_read', roomId);
-      }
     } catch (error) {
       console.error('Error marking messages as read:', error);
       setError('Error al marcar mensajes como leídos');
     }
-  };
+  }, []);
 
-  const getUnreadCount = (roomId: string): number => {
+  const getUnreadCount = useCallback((roomId: string): number => {
     const room = rooms.find(r => r.id === roomId);
     return room?.unreadCount || 0;
-  };
+  }, [rooms]);
 
-  const getRoomMessages = async (roomId: string): Promise<ChatMessage[]> => {
-    try {
-      const messages = await chatService.getRoomMessages(roomId);
-      setMessages(messages);
-      return messages;
-    } catch (error) {
-      console.error('Error fetching room messages:', error);
-      setError('Error al cargar los mensajes');
-      throw error;
-    }
-  };
-
-  const getAvailableUsers = async (): Promise<ChatUser[]> => {
+  const getAvailableUsers = useCallback(async (): Promise<ChatUser[]> => {
     try {
       const users = await chatService.getAvailableUsers();
-      setOnlineUsers(users);
       return users;
     } catch (error) {
       console.error('Error fetching available users:', error);
       setError('Error al cargar usuarios disponibles');
       throw error;
     }
-  };
+  }, []);
 
-  const uploadFile = async (file: File): Promise<{ url: string; fileName: string; fileSize: number }> => {
+  const uploadFile = useCallback(async (file: File): Promise<{ url: string; fileName: string; fileSize: number }> => {
     try {
       return await chatService.uploadFile(file);
     } catch (error) {
@@ -322,72 +202,54 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       setError('Error al subir el archivo');
       throw error;
     }
-  };
-
-  // Cargar salas al conectar
-  useEffect(() => {
-    if (isConnected && user) {
-      const loadRooms = async () => {
-        try {
-          setIsLoading(true);
-          const userRooms = await chatService.getRooms();
-          setRooms(userRooms);
-        } catch (error: any) {
-          console.error('Error loading rooms:', error);
-          // No mostrar error si es un error de red, solo log
-          if (error.code === 'NETWORK_ERROR' || error.message === 'Network Error') {
-            console.log('Chat service not available, skipping room loading');
-          } else {
-            setError('Error al cargar las salas de chat');
-          }
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      loadRooms();
-    }
-  }, [isConnected, user]);
-
-  // Conectar/desconectar basado en el usuario
-  useEffect(() => {
-    if (user) {
-      connect();
-    } else {
-      disconnect();
-    }
-
-    return () => {
-      disconnect();
-    };
-  }, [user]);
-
-  // Limpiar al desmontar
-  useEffect(() => {
-    return () => {
-      disconnect();
-    };
   }, []);
 
+  const contactUser = useCallback(async (participants: string[], message: string, roomName?: string) => {
+    try {
+      setIsLoading(true);
+      const result = await chatService.contactUser(participants, message, roomName);
+      
+      // Si es una sala nueva, agregarla a la lista local
+      if (result.isNewRoom) {
+        // Aquí podrías agregar la sala a la lista local si es necesario
+        console.log('🆕 Nueva sala creada:', result.roomId);
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('Error contacting user:', error);
+      setError('Error al contactar usuario');
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // No cargar salas automáticamente al montar el componente
+  // useEffect(() => {
+  //   if (user) {
+  //     loadRooms();
+  //   }
+  // }, [user]);
+
   const value: ChatContextType = {
-    isConnected,
     messages,
     rooms,
     activeRoom,
-    onlineUsers,
     isLoading,
     error,
-    connect,
-    disconnect,
     joinRoom,
     leaveRoom,
     createRoom,
     setActiveRoom,
+    loadRooms,
     sendMessage,
     markAsRead,
     getUnreadCount,
     getRoomMessages,
     getAvailableUsers,
     uploadFile,
+    contactUser,
     clearError,
   };
 

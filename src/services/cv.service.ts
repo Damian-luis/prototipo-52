@@ -143,11 +143,6 @@ const cvService = {
     const response = await api.get('/users/professionals/favorites');
     return response.data;
   },
-
-  // Contactar profesional
-  async contactProfessional(userId: string, message: string): Promise<void> {
-    await api.post(`/users/professionals/${userId}/contact`, { message });
-  },
 };
 
 export default cvService; 

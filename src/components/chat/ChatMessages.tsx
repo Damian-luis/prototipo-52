@@ -16,6 +16,9 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ roomId }) => {
   const { messages, getRoomMessages, markAsRead, activeRoom } = useChat();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Verificar que messages sea un array
+  const safeMessages = Array.isArray(messages) ? messages : [];
+
   // Auto-scroll al final
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -23,49 +26,117 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ roomId }) => {
 
   // Cargar mensajes cuando se activa la sala
   useEffect(() => {
-    if (roomId && activeRoom?.id === roomId) {
+    console.log('🔍 ChatMessages - useEffect triggered:', { roomId, activeRoomId: activeRoom?.id });
+    if (roomId) {
+      console.log('📥 ChatMessages - Loading messages for room:', roomId);
       getRoomMessages(roomId);
       markAsRead(roomId);
     }
-  }, [roomId, activeRoom, getRoomMessages, markAsRead]);
+  }, [roomId, getRoomMessages, markAsRead]);
 
   // Auto-scroll cuando llegan nuevos mensajes
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [safeMessages]);
 
   // Filtrar mensajes de esta sala
-  const roomMessages = messages.filter(msg => msg.roomId === roomId);
+  const roomMessages = safeMessages.filter(msg => msg.roomId === roomId);
+  
+  console.log('🔍 ChatMessages - Messages loaded:', {
+    totalMessages: safeMessages.length,
+    roomMessages: roomMessages.length,
+    roomId,
+    allMessages: safeMessages.map(m => ({ 
+      id: m.id, 
+      content: m.content ? m.content.substring(0, 30) : 'Sin contenido', 
+      sender: m.senderName,
+      roomId: m.roomId
+    })),
+    filteredMessages: roomMessages.map(m => ({ 
+      id: m.id, 
+      content: m.content ? m.content.substring(0, 30) : 'Sin contenido', 
+      sender: m.senderName,
+      roomId: m.roomId
+    }))
+  });
+
+  // Si no hay mensajes, mostrar mensaje de carga
+  if (roomMessages.length === 0) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-4">
+        <div className="text-center">
+          <p className="text-gray-500 dark:text-gray-400">
+            No hay mensajes en esta conversación
+          </p>
+          <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
+            ¡Sé el primero en enviar un mensaje!
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // Agrupar mensajes por fecha
   const groupMessagesByDate = () => {
     const groups: { [key: string]: typeof roomMessages } = {};
     roomMessages.forEach(message => {
-      const date = new Date(message.timestamp);
-      const dateKey = format(date, 'yyyy-MM-dd');
-      if (!groups[dateKey]) {
-        groups[dateKey] = [];
+      try {
+        const date = new Date(message.timestamp);
+        
+        // Verificar que la fecha sea válida
+        if (isNaN(date.getTime())) {
+          console.warn('⚠️ Invalid date for message:', message.id, message.timestamp);
+          return; // Saltar este mensaje
+        }
+        
+        const dateKey = format(date, 'yyyy-MM-dd');
+        if (!groups[dateKey]) {
+          groups[dateKey] = [];
+        }
+        groups[dateKey].push(message);
+      } catch (error) {
+        console.error('❌ Error processing message date:', message.id, message.timestamp, error);
       }
-      groups[dateKey].push(message);
     });
     return Object.entries(groups).map(([date, msgs]) => ({
       date,
-      messages: msgs.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+      messages: msgs.sort((a, b) => {
+        try {
+          const dateA = new Date(a.timestamp);
+          const dateB = new Date(b.timestamp);
+          return dateA.getTime() - dateB.getTime();
+        } catch (error) {
+          console.error('❌ Error sorting messages by date:', error);
+          return 0;
+        }
+      })
     }));
   };
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
+    try {
+      const date = new Date(dateString);
+      
+      // Verificar que la fecha sea válida
+      if (isNaN(date.getTime())) {
+        console.warn('⚠️ Invalid date in formatDate:', dateString);
+        return 'Fecha inválida';
+      }
+      
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
 
-    if (format(date, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd')) {
-      return 'Hoy';
-    } else if (format(date, 'yyyy-MM-dd') === format(yesterday, 'yyyy-MM-dd')) {
-      return 'Ayer';
-    } else {
-      return format(date, 'EEEE, d \'de\' MMMM', { locale: es });
+      if (format(date, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd')) {
+        return 'Hoy';
+      } else if (format(date, 'yyyy-MM-dd') === format(yesterday, 'yyyy-MM-dd')) {
+        return 'Ayer';
+      } else {
+        return format(date, 'EEEE, d \'de\' MMMM', { locale: es });
+      }
+    } catch (error) {
+      console.error('❌ Error formatting date:', dateString, error);
+      return 'Fecha inválida';
     }
   };
 
@@ -99,7 +170,16 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ roomId }) => {
               const showName = !isOwnMessage && (
                 index === 0 || 
                 messages[index - 1]?.senderId !== message.senderId ||
-                new Date(message.timestamp).getTime() - new Date(messages[index - 1].timestamp).getTime() > 300000 // 5 minutos
+                (() => {
+                  try {
+                    const currentTime = new Date(message.timestamp).getTime();
+                    const previousTime = new Date(messages[index - 1].timestamp).getTime();
+                    return currentTime - previousTime > 300000; // 5 minutos
+                  } catch (error) {
+                    console.error('❌ Error comparing timestamps:', error);
+                    return true; // Mostrar nombre por defecto
+                  }
+                })()
               );
 
               return (

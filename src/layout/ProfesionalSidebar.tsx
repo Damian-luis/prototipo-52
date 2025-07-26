@@ -15,6 +15,7 @@ import {
   PieChart,
   CalenderLine,
 } from "../icons/index";
+import { MessageSquare } from "lucide-react";
 import DollarLine from "../icons/dollar-line";
 import SidebarWidget from "./SidebarWidget";
 
@@ -82,6 +83,11 @@ const navItems: NavItem[] = [
     icon: <UserCircle />,
     name: "Mi Perfil",
     path: "/profesional/profile",
+  },
+  {
+    icon: <MessageSquare />,
+    name: "Chat",
+    path: "/profesional/chat",
   },
 ];
 

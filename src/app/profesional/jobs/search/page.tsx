@@ -30,8 +30,10 @@ const FreelancerJobsSearchPage = () => {
       try {
         setLoading(true);
         const availableJobs = await getAvailableJobs();
-        setJobs(availableJobs);
-        setFilteredJobs(availableJobs);
+        // Filtrar solo trabajos donde NO se ha aplicado
+        const jobsNotApplied = availableJobs.filter((job: Job) => !job.hasApplied);
+        setJobs(jobsNotApplied);
+        setFilteredJobs(jobsNotApplied);
       } catch (error) {
         console.error('Error loading jobs:', error);
       } finally {

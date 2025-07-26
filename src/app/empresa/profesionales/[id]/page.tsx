@@ -1,21 +1,28 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
+import { useChat } from "@/context/ChatContext";
 import ComponentCard from "@/components/common/ComponentCard";
 import Button from "@/components/ui/button/Button";
 import Badge from "@/components/ui/badge/Badge";
 import Avatar from "@/components/ui/avatar/Avatar";
-import { showError, showSuccess, showInfo } from '@/util/notifications';
+import { showError, showSuccess } from '@/util/notifications';
 import cvService, { ProfessionalProfile } from "@/services/cv.service";
+import { MessageSquare, X } from "lucide-react";
+import ChatMessages from "@/components/chat/ChatMessages";
+import ChatInput from "@/components/chat/ChatInput";
+import { useNotifications } from "@/hooks/useNotifications";
 
 const ProfesionalDetallePage = () => {
   const params = useParams();
+  const { user } = useAuth();
+  const { contactUser } = useChat();
+  const { notify } = useNotifications();
   const professionalId = params.id as string;
   
   const [professional, setProfessional] = useState<ProfessionalProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showContactModal, setShowContactModal] = useState(false);
-  const [contactMessage, setContactMessage] = useState("");
 
   useEffect(() => {
     if (professionalId) {
@@ -37,16 +44,32 @@ const ProfesionalDetallePage = () => {
   };
 
   const handleContactProfessional = async () => {
-    if (!professional || !contactMessage.trim()) return;
+    if (!user || !professional) {
+      console.error('No se puede contactar al profesional: datos faltantes');
+      return;
+    }
+
+    const companyId = user.id; // ID de la empresa actual
+    const professionalId = professional.id;
 
     try {
-      await cvService.contactProfessional(professional.id, contactMessage);
-      showSuccess('Mensaje enviado exitosamente');
-      setShowContactModal(false);
-      setContactMessage("");
+      console.log('🆕 Abriendo chat con profesional...');
+      
+      // Buscar sala existente o crear nueva (sin enviar mensaje automático)
+      const result = await contactUser(
+        [companyId, professionalId],
+        '', // Sin mensaje automático
+        `Contacto: ${user.name} ↔ ${professional.fullName}`
+      );
+      
+      console.log('✅ Chat abierto:', result);
+      
+      // Redirigir a la página de chat
+      window.location.href = '/empresa/chat';
+      
     } catch (error) {
-      console.error('Error enviando mensaje:', error);
-      showError('Error al enviar el mensaje');
+      console.error('❌ Error al abrir chat:', error);
+      notify('Error al abrir el chat');
     }
   };
 
@@ -172,10 +195,10 @@ const ProfesionalDetallePage = () => {
                   <div className="flex flex-col gap-2">
                     <Button
                       variant="primary"
-                      onClick={() => setShowContactModal(true)}
+                      onClick={handleContactProfessional}
                       className="w-full md:w-auto"
                     >
-                      Contactar
+                      Abrir Chat
                     </Button>
                     {professional.cvFileName && (
                       <Button
@@ -364,48 +387,6 @@ const ProfesionalDetallePage = () => {
           </ComponentCard>
         </div>
       </div>
-
-      {/* Modal de contacto */}
-      {showContactModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4">
-            <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
-              Contactar a {professional.fullName}
-            </h3>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Mensaje
-              </label>
-              <textarea
-                value={contactMessage}
-                onChange={(e) => setContactMessage(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-600 dark:text-white"
-                rows={4}
-                placeholder="Escribe tu mensaje aquí..."
-              />
-            </div>
-            <div className="flex space-x-3">
-              <Button
-                onClick={() => {
-                  setShowContactModal(false);
-                  setContactMessage("");
-                }}
-                variant="outline"
-                className="flex-1"
-              >
-                Cancelar
-              </Button>
-              <Button
-                onClick={handleContactProfessional}
-                disabled={!contactMessage.trim()}
-                className="flex-1"
-              >
-                Enviar Mensaje
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

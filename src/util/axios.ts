@@ -15,13 +15,19 @@ api.interceptors.request.use(
     // Obtener token del localStorage (solo en el cliente)
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('authToken');
+      console.log('🔍 [AXIOS] Request to:', config.url);
+      console.log('🔍 [AXIOS] Token exists:', !!token);
       if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
+        console.log('✅ [AXIOS] Token added to request');
+      } else {
+        console.log('⚠️ [AXIOS] No token found or no headers');
       }
     }
     return config;
   },
   (error: AxiosError) => {
+    console.error('❌ [AXIOS] Request error:', error);
     return Promise.reject(error);
   }
 );

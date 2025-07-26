@@ -19,6 +19,7 @@ import {
   BellIcon,
   PlugIn,
 } from "../icons/index";
+import { MessageSquare } from "lucide-react";
 import SidebarWidget from "./SidebarWidget";
 
 type NavItem = {
@@ -82,6 +83,11 @@ const navItems: NavItem[] = [
     icon: <BellIcon />,
     name: "Notificaciones",
     path: "/empresa/notificaciones",
+  },
+  {
+    icon: <MessageSquare />,
+    name: "Chat",
+    path: "/empresa/chat",
   },
   {
     icon: <PlugIn />,

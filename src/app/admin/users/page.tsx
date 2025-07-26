@@ -1,9 +1,8 @@
 "use client";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { 
   Search, 
-  MoreHorizontal, 
   Edit, 
   Trash2, 
   Plus,
@@ -63,32 +62,16 @@ export default function UsersManagementPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<ApiUser | null>(null);
-  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
   const { success, error } = useNotifications();
-  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Cargar usuarios al montar el componente
   useEffect(() => {
     loadUsers();
-  }, []);
-
-  // Cerrar dropdown al hacer clic fuera
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setOpenDropdown(null);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
   }, []);
 
   // Filtrar usuarios
@@ -152,7 +135,6 @@ export default function UsersManagementPage() {
   const handleEditUser = (user: ApiUser) => {
     setEditingUser({ ...user });
     setIsEditModalOpen(true);
-    setOpenDropdown(null);
   };
 
   const handleSaveUser = async () => {
@@ -185,7 +167,6 @@ export default function UsersManagementPage() {
   const handleDeleteUser = (user: ApiUser) => {
     setUserToDelete(user);
     setIsDeleteModalOpen(true);
-    setOpenDropdown(null);
   };
 
   const confirmDeleteUser = async () => {
@@ -213,10 +194,6 @@ export default function UsersManagementPage() {
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('es-ES');
-  };
-
-  const toggleDropdown = (userId: string) => {
-    setOpenDropdown(openDropdown === userId ? null : userId);
   };
 
   const getStatusDisplay = (status: string) => {
@@ -371,31 +348,21 @@ export default function UsersManagementPage() {
                     <td className="py-4 px-6 text-gray-700">{formatDate(user.createdAt)}</td>
                     <td className="py-4 px-6 text-gray-700">{formatDate(user.updatedAt)}</td>
                     <td className="py-4 px-6">
-                      <div className="relative" ref={dropdownRef}>
+                      <div className="flex items-center space-x-2">
                         <button
-                          className="h-8 w-8 p-0 hover:bg-gray-100 rounded-lg flex items-center justify-center"
-                          onClick={() => toggleDropdown(user.id)}
+                          onClick={() => handleEditUser(user)}
+                          className="h-8 w-8 p-0 hover:bg-blue-100 rounded-lg flex items-center justify-center transition-colors"
+                          title="Editar usuario"
                         >
-                          <MoreHorizontal className="h-4 w-4 text-gray-600" />
+                          <Edit className="h-4 w-4 text-blue-600" />
                         </button>
-                        {openDropdown === user.id && (
-                          <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg z-50 border border-gray-200 py-1">
-                            <button
-                              onClick={() => handleEditUser(user)}
-                              className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                            >
-                              <Edit className="mr-3 h-4 w-4 text-blue-600" />
-                              Editar Usuario
-                            </button>
-                            <button
-                              onClick={() => handleDeleteUser(user)}
-                              className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                            >
-                              <Trash2 className="mr-3 h-4 w-4 text-red-600" />
-                              Eliminar Usuario
-                            </button>
-                          </div>
-                        )}
+                        <button
+                          onClick={() => handleDeleteUser(user)}
+                          className="h-8 w-8 p-0 hover:bg-red-100 rounded-lg flex items-center justify-center transition-colors"
+                          title="Eliminar usuario"
+                        >
+                          <Trash2 className="h-4 w-4 text-red-600" />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -408,7 +375,7 @@ export default function UsersManagementPage() {
 
       {/* Modal de Edición */}
       {isEditModalOpen && editingUser && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 backdrop-blur-sm bg-white bg-opacity-10 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md transform transition-all">
             <div className="p-6 border-b border-gray-200">
               <h2 className="text-xl font-bold text-gray-900">Editar Usuario</h2>
@@ -499,7 +466,7 @@ export default function UsersManagementPage() {
 
       {/* Modal de Confirmación de Eliminación */}
       {isDeleteModalOpen && userToDelete && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 backdrop-blur-sm bg-white bg-opacity-10 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md transform transition-all">
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center space-x-3">
