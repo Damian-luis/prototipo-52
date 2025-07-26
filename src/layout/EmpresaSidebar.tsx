@@ -271,16 +271,16 @@ const EmpresaSidebar: React.FC = () => {
 
   return (
     <aside
-      className={`fixed mt-16 flex flex-col lg:mt-0 top-0 px-5 left-0 bg-white dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen transition-all duration-300 ease-in-out z-50 border-r border-gray-200 
+      className={`fixed lg:relative mt-16 lg:mt-0 flex flex-col top-0 px-3 lg:px-5 left-0 bg-white dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen transition-all duration-300 ease-in-out z-50 border-r border-gray-200 
         ${
           isExpanded || isMobileOpen
-            ? "w-[290px]"
+            ? "w-[280px] sm:w-[290px]"
             : isHovered
-            ? "w-[290px]"
-            : "w-[90px]"
+            ? "w-[280px] sm:w-[290px]"
+            : "w-[70px] sm:w-[90px]"
         }
         ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
-        lg:translate-x-0`}
+        lg:translate-x-0 lg:flex-shrink-0`}
       onMouseEnter={() => !isExpanded && setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >

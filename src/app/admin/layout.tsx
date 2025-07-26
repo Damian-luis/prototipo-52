@@ -12,21 +12,21 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const { isExpanded, isHovered, isMobileOpen } = useSidebar();
-  // Determina el ancho del sidebar
-  const sidebarWidth = isExpanded || isHovered || isMobileOpen ? "ml-[290px]" : "ml-[90px]";
 
   return (
     <AuthGuard requiredRole="ADMIN">
-      {/* Sidebar fijo, el contenido debe tener margin-left */}
-      <AppSidebar />
+      <div className="flex min-h-screen">
+        {/* Sidebar */}
+        <AppSidebar />
 
-      {/* Content area */}
-      <div className={`relative flex flex-1 flex-col overflow-y-auto overflow-x-hidden transition-all duration-300 ${sidebarWidth}`}>
-        {/* Header */}
-        <AppHeader />
+        {/* Content area */}
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Header */}
+          <AppHeader />
 
-        {/* Main content */}
-        <main className="grow [&>*:first-child]:scroll-mt-16 p-6">{children}</main>
+          {/* Main content */}
+          <main className="grow [&>*:first-child]:scroll-mt-16 p-3 sm:p-6">{children}</main>
+        </div>
       </div>
     </AuthGuard>
   );

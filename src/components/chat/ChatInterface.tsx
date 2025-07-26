@@ -129,7 +129,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onClose, isModal = false 
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg w-full h-[600px] flex">
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg w-full h-[500px] sm:h-[600px] flex">
       <ChatInterfaceContent 
         filteredRooms={filteredRooms}
         activeRoom={activeRoom}
@@ -182,9 +182,9 @@ const ChatInterfaceContent: React.FC<ChatInterfaceContentProps> = ({
       {/* Lista de conversaciones */}
       <div className={`${showRooms ? 'flex' : 'hidden'} md:flex flex-col w-full md:w-80 border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900`}>
         {/* Header */}
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+        <div className="p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
               Conversaciones
             </h2>
             {onClose && (
@@ -207,7 +207,7 @@ const ChatInterfaceContent: React.FC<ChatInterfaceContentProps> = ({
               placeholder="Buscar conversaciones..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-600 dark:text-white text-sm"
             />
           </div>
         </div>
@@ -234,13 +234,13 @@ const ChatInterfaceContent: React.FC<ChatInterfaceContentProps> = ({
                   <div
                     key={room.id}
                     onClick={() => onRoomSelect(room)}
-                    className={`p-4 cursor-pointer transition-colors ${
+                    className={`p-3 sm:p-4 cursor-pointer transition-colors ${
                       isActive 
                         ? 'bg-blue-50 dark:bg-blue-900/20 border-r-2 border-blue-500' 
                         : 'hover:bg-gray-100 dark:hover:bg-gray-800'
                     }`}
                   >
-                    <div className="flex items-center space-x-3">
+                    <div className="flex items-center space-x-2 sm:space-x-3">
                       <Avatar
                         src={otherParticipant?.avatar}
                         fallbackText={otherParticipant?.name || 'Usuario'}
@@ -248,7 +248,7 @@ const ChatInterfaceContent: React.FC<ChatInterfaceContentProps> = ({
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <h3 className={`font-medium truncate ${
+                          <h3 className={`font-medium truncate text-sm sm:text-base ${
                             isActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-white'
                           }`}>
                             {otherParticipant?.name || room.name || 'Conversación'}
@@ -257,7 +257,7 @@ const ChatInterfaceContent: React.FC<ChatInterfaceContentProps> = ({
                             {getLastMessageTime(room)}
                           </span>
                         </div>
-                        <p className="text-sm text-gray-500 truncate">
+                        <p className="text-xs sm:text-sm text-gray-500 truncate">
                           {getLastMessagePreview(room)}
                         </p>
                         {room.unreadCount > 0 && (
@@ -285,8 +285,8 @@ const ChatInterfaceContent: React.FC<ChatInterfaceContentProps> = ({
         {activeRoom ? (
           <>
             {/* Header del chat */}
-            <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-              <div className="flex items-center space-x-3">
+            <div className="p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+              <div className="flex items-center space-x-2 sm:space-x-3">
                 <Button
                   onClick={() => setShowRooms(!showRooms)}
                   variant="ghost"
@@ -306,10 +306,10 @@ const ChatInterfaceContent: React.FC<ChatInterfaceContentProps> = ({
                         size="md"
                       />
                       <div>
-                        <h3 className="font-semibold text-gray-900 dark:text-white">
+                        <h3 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">
                           {otherParticipant?.name || activeRoom.name || 'Conversación'}
                         </h3>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-xs sm:text-sm text-gray-500">
                           {activeRoom.participants.length === 2 ? 'Chat privado' : 'Grupo'}
                         </p>
                       </div>
@@ -318,11 +318,11 @@ const ChatInterfaceContent: React.FC<ChatInterfaceContentProps> = ({
                 })()}
               </div>
               
-              <div className="flex items-center space-x-2">
-                <Button variant="ghost" size="sm">
+              <div className="flex items-center space-x-1 sm:space-x-2">
+                <Button variant="ghost" size="sm" className="hidden sm:flex">
                   <Phone className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" className="hidden sm:flex">
                   <Video className="h-4 w-4" />
                 </Button>
                 <Button variant="ghost" size="sm">
@@ -337,7 +337,7 @@ const ChatInterfaceContent: React.FC<ChatInterfaceContentProps> = ({
             </div>
 
             {/* Input */}
-            <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="p-3 sm:p-4 border-t border-gray-200 dark:border-gray-700">
               <ChatInput roomId={activeRoom.id} />
             </div>
           </>

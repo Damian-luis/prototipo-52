@@ -244,12 +244,12 @@ export default function UsersManagementPage() {
 
       {/* Filtros */}
       <div className="bg-white rounded-xl shadow-md border-0">
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           <div className="flex items-center space-x-2 mb-4">
             <Filter className="h-5 w-5 text-gray-500" />
             <h3 className="text-lg font-semibold text-gray-900">Filtros y Búsqueda</h3>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
               <input
@@ -257,13 +257,13 @@ export default function UsersManagementPage() {
                 placeholder="Buscar usuarios..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
               />
             </div>
             <select 
               value={roleFilter} 
               onChange={(e) => setRoleFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm sm:text-base"
             >
               <option value="all">Todos los roles</option>
               <option value="EMPRESA">Empresas</option>
@@ -273,7 +273,7 @@ export default function UsersManagementPage() {
             <select 
               value={statusFilter} 
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm sm:text-base"
             >
               <option value="all">Todos los estados</option>
               <option value="ACTIVE">Activos</option>
@@ -282,15 +282,15 @@ export default function UsersManagementPage() {
             </select>
             <div className="flex items-center justify-center px-4 py-2 bg-gray-50 rounded-lg border">
               <span className="text-sm font-medium text-gray-700">
-                {filteredUsers.length} usuarios encontrados
+                {filteredUsers.length} usuarios
               </span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Tabla */}
-      <div className="bg-white rounded-xl shadow-md border-0 overflow-hidden">
+      {/* Vista de Tabla (Desktop) */}
+      <div className="hidden lg:block bg-white rounded-xl shadow-md border-0 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
@@ -305,7 +305,7 @@ export default function UsersManagementPage() {
             </thead>
             <tbody>
               {filteredUsers.map((user) => {
-                const RoleIcon = roleIcons[user.role as keyof typeof roleIcons] || User; // Usar User como icono por defecto
+                const RoleIcon = roleIcons[user.role as keyof typeof roleIcons] || User;
                 return (
                   <tr key={user.id} className="hover:bg-gray-50 border-b border-gray-100">
                     <td className="py-4 px-6">
@@ -371,6 +371,90 @@ export default function UsersManagementPage() {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Vista de Cards (Móvil) */}
+      <div className="lg:hidden space-y-4">
+        {filteredUsers.map((user) => {
+          const RoleIcon = roleIcons[user.role as keyof typeof roleIcons] || User;
+          return (
+            <div key={user.id} className="bg-white rounded-xl shadow-md border-0 p-4">
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center space-x-3">
+                  {user.avatar && !imageErrors.has(user.id) ? (
+                    <Image 
+                      src={user.avatar} 
+                      alt={`Avatar de ${user.fullName}`}
+                      width={48}
+                      height={48}
+                      className="h-12 w-12 rounded-full object-cover shadow-sm"
+                      onError={() => handleImageError(user.id)}
+                    />
+                  ) : (
+                    <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-sm">
+                      <RoleIcon className="h-6 w-6 text-white" />
+                    </div>
+                  )}
+                  <div>
+                    <div className="font-semibold text-gray-900 text-base">{user.fullName}</div>
+                    <div className="text-sm text-gray-500">{user.email}</div>
+                    {user.isGoogleUser && (
+                      <div className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full inline-block mt-1">
+                        Google
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => handleEditUser(user)}
+                    className="h-8 w-8 p-0 hover:bg-blue-100 rounded-lg flex items-center justify-center transition-colors"
+                    title="Editar usuario"
+                  >
+                    <Edit className="h-4 w-4 text-blue-600" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteUser(user)}
+                    className="h-8 w-8 p-0 hover:bg-red-100 rounded-lg flex items-center justify-center transition-colors"
+                    title="Eliminar usuario"
+                  >
+                    <Trash2 className="h-4 w-4 text-red-600" />
+                  </button>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <div>
+                  <span className="text-xs text-gray-500 uppercase tracking-wide">Rol</span>
+                  <div className="mt-1">
+                    <span className={`${roleColors[user.role as keyof typeof roleColors] || roleColors.PROFESIONAL} border px-2 py-1 text-xs font-medium rounded-full`}>
+                      {user.role}
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <span className="text-xs text-gray-500 uppercase tracking-wide">Estado</span>
+                  <div className="mt-1">
+                    <span className={`${statusColors[user.accountStatus] || statusColors.PENDING} border px-2 py-1 text-xs font-medium rounded-full`}>
+                      {getStatusDisplay(user.accountStatus)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="space-y-2 text-sm text-gray-600">
+                <div className="flex justify-between">
+                  <span>Registro:</span>
+                  <span>{formatDate(user.createdAt)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Actualizado:</span>
+                  <span>{formatDate(user.updatedAt)}</span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* Modal de Edición */}

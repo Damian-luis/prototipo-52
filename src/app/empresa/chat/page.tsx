@@ -23,19 +23,19 @@ const EmpresaChatPage = () => {
   }
 
   return (
-    <div className="mx-auto max-w-7xl">
+    <div className="mx-auto max-w-7xl px-3 sm:px-6">
       <PageBreadcrumb pageTitle="Chat" />
       
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+      <div className="mb-4 sm:mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-2">
           Chat
         </h1>
-        <p className="text-gray-600 dark:text-gray-400">
+        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
           Comunícate con profesionales y gestiona tus proyectos
         </p>
       </div>
 
-      <div className="h-[700px]">
+      <div className="h-[calc(100vh-200px)] sm:h-[700px]">
         <ChatInterface />
       </div>
     </div>

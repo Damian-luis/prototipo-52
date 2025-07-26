@@ -11,14 +11,21 @@ export default function ProfesionalLayout({
   children: React.ReactNode;
 }) {
   const { isExpanded, isHovered, isMobileOpen } = useSidebar();
-  const sidebarWidth = isExpanded || isHovered || isMobileOpen ? "ml-[290px]" : "ml-[90px]";
 
   return (
     <AuthGuard requiredRole="PROFESIONAL">
-      <ProfesionalSidebar />
-      <div className={`relative flex flex-1 flex-col overflow-y-auto overflow-x-hidden transition-all duration-300 ${sidebarWidth}`}>
-        <AppHeader />
-        <main className="grow [&>*:first-child]:scroll-mt-16 p-6">{children}</main>
+      <div className="flex min-h-screen">
+        {/* Sidebar */}
+        <ProfesionalSidebar />
+
+        {/* Content area */}
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Header */}
+          <AppHeader />
+
+          {/* Main content */}
+          <main className="grow [&>*:first-child]:scroll-mt-16 p-3 sm:p-6">{children}</main>
+        </div>
       </div>
     </AuthGuard>
   );

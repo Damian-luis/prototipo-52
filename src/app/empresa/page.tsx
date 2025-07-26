@@ -19,6 +19,7 @@ import {
   CheckCircle,
   AlertCircle
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 interface DashboardStats {
   totalProjects: number;
@@ -33,6 +34,7 @@ export default function EmpresaDashboard() {
   const { user } = useAuth();
   const { getContractStats } = useContract();
   const { getPaymentStats } = usePayment();
+  const router = useRouter();
   const [stats, setStats] = useState<DashboardStats>({
     totalProjects: 0,
     activeContracts: 0,
@@ -44,6 +46,18 @@ export default function EmpresaDashboard() {
   const [loading, setLoading] = useState(true);
   const [recentJobs, setRecentJobs] = useState<any[]>([]);
   const [recentApplications, setRecentApplications] = useState<any[]>([]);
+
+  const handleCreateProject = () => {
+    router.push('/empresa/proyectos/nuevo');
+  };
+
+  const handleViewContracts = () => {
+    router.push('/empresa/contratos');
+  };
+
+  const handleManagePayments = () => {
+    router.push('/empresa/pagos');
+  };
 
   useEffect(() => {
     const loadDashboardData = async () => {
@@ -107,7 +121,7 @@ export default function EmpresaDashboard() {
           <h1 className="text-3xl font-bold text-gray-900">Dashboard de Empresa</h1>
           <p className="text-gray-600">Bienvenido de vuelta, {user?.name}</p>
         </div>
-        <Button className="bg-blue-600 hover:bg-blue-700">
+        <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleCreateProject}>
           <Briefcase className="w-4 h-4 mr-2" />
           Crear Nuevo Proyecto
         </Button>
@@ -217,15 +231,15 @@ export default function EmpresaDashboard() {
       <Card>
         <h3 className="text-lg font-semibold mb-4">Acciones Rápidas</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Button variant="outline" className="h-20 flex flex-col">
+          <Button variant="outline" className="h-20 flex flex-col" onClick={handleCreateProject}>
             <Briefcase className="w-6 h-6 mb-2" />
             Crear Trabajo
           </Button>
-          <Button variant="outline" className="h-20 flex flex-col">
+          <Button variant="outline" className="h-20 flex flex-col" onClick={handleViewContracts}>
             <FileText className="w-6 h-6 mb-2" />
             Ver Contratos
           </Button>
-          <Button variant="outline" className="h-20 flex flex-col">
+          <Button variant="outline" className="h-20 flex flex-col" onClick={handleManagePayments}>
             <DollarSign className="w-6 h-6 mb-2" />
             Gestionar Pagos
           </Button>
